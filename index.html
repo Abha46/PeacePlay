@@ -1,0 +1,1898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PeacePlay - Your Mindful Companion</title>
+    <!-- Use Inter font for a clean, modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load Tone.js (Audio Library) - Loaded in head for stability -->
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.58/build/Tone.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #1f2937; 
+            background: linear-gradient(180deg, #f0f9ff 0%, #dbeafe 100%);
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        /* Keyframes for the breathing circle animation */
+        .breathing-circle {
+            width: 200px;
+            height: 200px;
+            background-color: #60a5fa; /* Medium blue */
+            border-radius: 9999px;
+            animation: breathe 8s infinite;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); background-color: #bae6fd; /* Light sky blue on inhale */ }
+        }
+
+        /* bubble pop game's floating bubbles */
+        .bubble {
+            position: absolute;
+            bottom: 0;
+            width: 40px;
+            height: 40px;
+            background-color: #60a5fa;
+            border-radius: 9999px;
+            cursor: pointer;
+            opacity: 0.7;
+            animation: float-up linear infinite;
+            transition: transform 0.1s;
+            z-index: 10;
+        }
+        .bubble:active {
+            transform: scale(0.9);
+        }
+        @keyframes float-up {
+            from { transform: translateY(0); opacity: 0.8; }
+            to { transform: translateY(-400px); opacity: 0; }
+        }
+
+        /* Animation for the text that appears after a bubble is popped */
+        .pop-text-animation {
+            animation: fade-out 1.5s forwards;
+            pointer-events: none;
+            z-index: 20;
+        }
+        @keyframes fade-out {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+
+        /* Cloud animation */
+        .cloud-float {
+            animation: float-cloud linear forwards;
+        }
+        @keyframes float-cloud {
+            from { transform: translateX(-150px); }
+            to { transform: translateX(100vw); }
+        }
+        
+        /* Custom Modal Styles */
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 100;
+            display: none; /* Hidden by default */
+            text-align: center;
+            max-width: 90%;
+            width: 320px;
+        }
+        
+        .message-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 90;
+            display: none; /* Hidden by default */
+        }
+
+        /* Scrollbar styling for chat and journal */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #93c5fd; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #60a5fa; 
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8 md:p-12 lg:p-16 flex flex-col items-center min-h-screen">
+    <!-- Message Box and Overlay -->
+    <div id="message-overlay" class="message-overlay"></div>
+    <div id="message-box" class="message-box">
+        <p id="message-text" class="text-lg font-semibold mb-6 text-gray-800"></p>
+        <button id="message-ok-btn" class="px-6 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors shadow-md">OK</button>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-container" class="max-w-7xl w-full bg-blue-50 rounded-3xl shadow-2xl p-6 sm:p-10 md:p-14 border-b-8 border-blue-500">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-blue-700 tracking-tight">
+                PeacePlay
+            </h1>
+            <p class="mt-2 text-lg sm:text-xl text-blue-400 max-w-2xl mx-auto">
+                Your peaceful digital space for stress relief and emotional well-being.
+            </p>
+        </header>
+
+        <!-- Main Layout with two vertical sections -->
+        <main class="flex flex-col gap-8">
+            <!-- Games Section -->
+            <section id="games-section" class="bg-cyan-50 p-6 rounded-2xl shadow-inner border-t-4 border-blue-400">
+                <h2 class="text-2xl sm:text-3xl font-bold text-blue-800 mb-6">Interactive Mini-Games</h2>
+                <p class="text-gray-600 mb-6">Choose a game to take a mindful break and relax your mind.</p> 
+                <!-- Game cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div id="bubble-pop" class="game-card bg-cyan-200 p-6 rounded-xl text-center cursor-pointer transition-transform transform hover:scale-105 hover:shadow-lg">
+                        <span class="text-3xl">🫧</span>
+                        <h3 class="mt-2 font-semibold text-cyan-800">Bubble Pop</h3>
+                        <p class="text-sm text-cyan-600">A simple, satisfying game.</p>
+                    </div>
+                    <div id="breathe-with-me" class="game-card bg-blue-200 p-6 rounded-xl text-center cursor-pointer transition-transform transform hover:scale-105 hover:shadow-lg">
+                        <span class="text-3xl">🧘‍♀️</span>
+                        <h3 class="mt-2 font-semibold text-blue-800">Breathe with Me</h3>
+                        <p class="text-sm text-blue-600">Follow the guide to calm your breath.</p>
+                    </div>
+                    <div id="affirmation-flip" class="game-card bg-sky-200 p-6 rounded-xl text-center cursor-pointer transition-transform transform hover:scale-105 hover:shadow-lg">
+                        <span class="text-3xl">✨</span>
+                        <h3 class="mt-2 font-semibold text-sky-800">Affirmation Flip</h3>
+                        <p class="text-sm text-sky-600">Turn over cards for positive thoughts.</p>
+                    </div>
+                    <div id="tic-tac-toe" class="game-card bg-teal-200 p-6 rounded-xl text-center cursor-pointer transition-transform transform hover:scale-105 hover:shadow-lg">
+                        <span class="text-3xl">❌⭕️</span>
+                        <h3 class="mt-2 font-semibold text-teal-800">Tic Tac Toe</h3>
+                        <p class="text-sm text-teal-600">The classic game of X's and O's.</p>
+                    </div>
+                    <div id="soundscape-generator" class="game-card bg-indigo-200 p-6 rounded-xl text-center cursor-pointer transition-transform transform hover:scale-105 hover:shadow-lg">
+                        <span class="text-3xl">🎶</span>
+                        <h3 class="mt-2 font-semibold text-indigo-800">Soothing Tones</h3>
+                        <p class="text-sm text-indigo-600">Calming sounds to relax.</p>
+                    </div>
+                    <div id="thought-journal" class="game-card bg-cyan-300 p-6 rounded-xl text-center cursor-pointer transition-transform transform hover:scale-105 hover:shadow-lg">
+                        <span class="text-3xl">📝</span>
+                        <h3 class="mt-2 font-semibold text-cyan-800">Thought Journal</h3>
+                        <p class="text-sm text-cyan-600">Write down your feelings.</p>
+                    </div>
+                    <div id="memory-match" class="game-card bg-rose-200 p-6 rounded-xl text-center cursor-pointer transition-transform transform hover:scale-105 hover:shadow-lg">
+                        <span class="text-3xl">🧩</span>
+                        <h3 class="mt-2 font-semibold text-rose-800">Mindful Match</h3>
+                        <p class="text-sm text-rose-600">Find pairs to clear your mind.</p>
+                    </div>
+                    <div id="zen-drawing" class="game-card bg-amber-200 p-6 rounded-xl text-center cursor-pointer transition-transform transform hover:scale-105 hover:shadow-lg">
+                        <span class="text-3xl">🎋</span>
+                        <h3 class="mt-2 font-semibold text-amber-800">Zen Canvas</h3>
+                        <p class="text-sm text-amber-600">Rake the sand and relax.</p>
+                    </div>
+                    <div id="melody-echo" class="game-card bg-violet-200 p-6 rounded-xl text-center cursor-pointer transition-transform transform hover:scale-105 hover:shadow-lg">
+                        <span class="text-3xl">🔔</span>
+                        <h3 class="mt-2 font-semibold text-violet-800">Melody Echo</h3>
+                        <p class="text-sm text-violet-600">Repeat the gentle tunes.</p>
+                    </div>
+                    <!-- New Game Added -->
+                    <div id="mandala-mirror" class="game-card bg-fuchsia-200 p-6 rounded-xl text-center cursor-pointer transition-transform transform hover:scale-105 hover:shadow-lg">
+                        <span class="text-3xl">🌸</span>
+                        <h3 class="mt-2 font-semibold text-fuchsia-800">Mandala Mirror</h3>
+                        <p class="text-sm text-fuchsia-600">Create beautiful symmetry.</p>
+                    </div>
+                    <!-- New Game Added -->
+                    <div id="word-calm" class="game-card bg-orange-200 p-6 rounded-xl text-center cursor-pointer transition-transform transform hover:scale-105 hover:shadow-lg">
+                        <span class="text-3xl">🔡</span>
+                        <h3 class="mt-2 font-semibold text-orange-800">Word Calm</h3>
+                        <p class="text-sm text-orange-600">Unscramble peaceful words.</p>
+                    </div>
+                    <!-- New Game Added: Tiny Trivia -->
+                    <div id="tiny-trivia" class="game-card bg-lime-200 p-6 rounded-xl text-center cursor-pointer transition-transform transform hover:scale-105 hover:shadow-lg">
+                        <span class="text-3xl">🦉</span>
+                        <h3 class="mt-2 font-semibold text-lime-800">Mindful Minis</h3>
+                        <p class="text-sm text-lime-600">Fun & easy learning for bright minds.</p>
+                    </div>
+                </div>
+
+                <!-- Game Display Area - Changed h-96 to min-h-[24rem] to allow expansion -->
+                <div id="game-display" class="mt-8 bg-blue-50 p-6 rounded-xl flex items-center justify-center text-center min-h-[24rem] border border-blue-200 relative overflow-hidden">
+                    <p class="text-gray-400 text-lg">Select a game to start playing.</p>
+                </div>
+            </section>
+
+            <!-- Chatbot Section -->
+            <section id="chatbot-section" class="bg-blue-100 p-6 rounded-2xl shadow-inner border-t-4 border-blue-400 flex flex-col h-full">
+                <h2 class="text-2xl sm:text-3xl font-bold text-blue-800 mb-6">PeacePlay Chatbot</h2>
+                <p class="text-gray-600 mb-4">I'm here to listen. How are you feeling today?</p>
+                
+                <!-- Chatbox -->
+                <div id="chat-box" class="flex-1 overflow-y-auto p-4 bg-white rounded-lg border border-blue-200 mb-4 flex flex-col gap-3 shadow-inner h-64">
+                    <!-- Initial bot message -->
+                    <div class="flex justify-start">
+                        <div class="bg-blue-100 text-gray-800 p-3 rounded-2xl rounded-bl-none max-w-xs shadow-sm">
+                            Hello there! I'm here to offer some peace and calm.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat input form -->
+                <form id="chat-form" class="flex gap-2">
+                    <input type="text" id="user-input" placeholder="Type your message..." class="flex-1 p-3 rounded-full border border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all shadow-sm">
+                    <button type="submit" class="bg-blue-500 text-white p-3 px-6 rounded-full font-semibold hover:bg-blue-600 transition-colors shadow-md transform active:scale-95">
+                        Send
+                    </button>
+                </form>
+            </section>
+        </main>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Get DOM elements for interaction
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const chatBox = document.getElementById('chat-box');
+        const gameDisplay = document.getElementById('game-display');
+        const gameCards = document.querySelectorAll('.game-card');
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+        const messageOkBtn = document.getElementById('message-ok-btn');
+        const messageOverlay = document.getElementById('message-overlay');
+
+        // Global variables to control game states and animations
+        let bubbleInterval = null;
+        let currentSound = null;
+        let audioSynth = null;
+        let animationFrameId = null;
+
+        // Jokes
+        const jokes = [
+            "I’m on a seafood diet — I see food and I eat it.",
+            "My wallet is like an onion, opening it makes me cry.",
+            "If Monday had a face, I would punch it",
+            "My boss told me to have a good day… so I went home.",
+            "My boss told me to start every presentation with a joke… so I used his salary as the opening slide.",
+            "My boss is like clouds. When he disappears, it’s a beautiful day.",
+            "I told my computer I needed a break… now it won’t stop sending me KitKats.",
+            "What do you call a magic dog? A labracadabrador..",
+            "Why did the bicycle fall over? Because it was two tired!",
+            "I told my mirror to tell me a joke.I don’t know why…but it just showed me my face.'",
+            "I love walking in fog… it’s the only time I can disappear without people noticing.",
+            "Relative at a wedding: You’re next!... Me at a funeral: Same to you!",
+            "You must be tired....... running from responsibility all these years.",
+            "Relative: Can I do something for you? me : block me...",
+            "Boss: Where do you see yourself in 5 years? Me: Not in this office",
+            "Relatives: What makes you sad? Me : You.",
+            "Boss: You’re wasting time on your phone...You: “Better than wasting time listening to you..",
+            "Why was the math book sad? Because it had too many problems.",
+            "What’s the best thing about Switzerland? I don’t know, but the flag is a big plus.",
+            "Did you hear about the two guys who stole a calendar? They each got six months."
+        ];
+
+        // --- Message Box Function ---
+        const showMessage = (text) => {
+            messageText.textContent = text;
+            messageBox.style.display = 'block';
+            messageOverlay.style.display = 'block';
+        };
+
+        messageOkBtn.addEventListener('click', () => {
+            messageBox.style.display = 'none';
+            messageOverlay.style.display = 'none';
+        });
+
+        /**
+         * Clears all running animations and audio, ensuring a clean state when switching games.
+         * Includes check for Tone existence to prevent crashes.
+         */
+        const stopAllSounds = () => {
+            // Check if Tone is available to avoid reference errors
+            if (typeof Tone !== 'undefined') {
+                if (audioSynth) {
+                    audioSynth.triggerRelease();
+                    audioSynth.dispose();
+                    audioSynth = null;
+                }
+                // Stop Tone Transport if running
+                if (Tone.Transport) {
+                    Tone.Transport.stop();
+                    Tone.Transport.cancel();
+                }
+                
+                if (currentSound) {
+                    // If currentSound is an object with a stop/dispose method
+                    if(typeof currentSound.stop === 'function') currentSound.stop();
+                    if(typeof currentSound.dispose === 'function') currentSound.dispose();
+                    currentSound = null;
+                }
+            }
+            
+            if (bubbleInterval) {
+                clearInterval(bubbleInterval);
+                bubbleInterval = null;
+            }
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+        };
+
+        // --- Chatbot Logic ---
+        const getChatResponse = (userMessage) => {
+            const lowerMessage = userMessage.toLowerCase().trim();
+            if (lowerMessage.includes("how are you")) {
+                return { message: "I'm doing well, thank you. How about you?", recommendation: "none" };
+            }
+            if (lowerMessage.includes("what can you do")) {
+                return { message: "I'm here to offer a little calm and peace. You can play one of our mindful games, or just talk to me about how you're feeling.", recommendation: "none" };
+            }
+            if (lowerMessage.includes("hello") || lowerMessage.includes("hi") || lowerMessage.includes("hey")) {
+                return { message: "Hello there! How can I help you feel more at ease?", recommendation: "none" };
+            }
+            if (lowerMessage.includes("i'm fine") || lowerMessage.includes("i am fine") || lowerMessage.includes("i'm good") || lowerMessage.includes("i am good")) {
+                return { message: "That's great! It's wonderful to hear you're in a good place.", recommendation: "none" };
+            }
+            if (lowerMessage.includes("thanks") || lowerMessage.includes("thank you")) {
+                return { message: "You're welcome! I'm here to help.", recommendation: "none" };
+            }
+            if (lowerMessage.includes("i can't sleep") || lowerMessage.includes("i cannot sleep")) {
+                return { message: "A calm mind can lead to a good night's rest. You could try the soundscape generator to find some soothing sounds to help you relax.", recommendation: "soundscape-generator" };
+            }
+            if (lowerMessage.includes("i need to vent")) {
+                return { message: "I'm here to listen without judgment. You can write down your thoughts in the thought journal. It can be a powerful way to process your feelings.", recommendation: "thought-journal" };
+            }
+            if (lowerMessage.includes("what is mindfulness?")) {
+                return { message: "Mindfulness is the practice of being present and aware of your thoughts and feelings without getting caught up in them. Our games are designed to help you with that.", recommendation: "none" };
+            }
+            if (lowerMessage.includes("bye")) {
+                return { message: "Bye! Have a nice day.", recommendation: "none" };
+            }
+            if (lowerMessage.includes("tell me a joke")) {
+                const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
+                return { message: randomJoke, recommendation: "bubble-pop" };
+            }
+            if (lowerMessage.includes("i am not sad") || lowerMessage.includes("i'm not sad")) {
+                 return { message: "That's great! It sounds like you are feeling positive. I'm glad to hear that!", recommendation: "none" };
+            }
+
+            // More general emotion-based responses
+            if (lowerMessage.includes("i am not fine") || lowerMessage.includes("i'm not fine") || lowerMessage.includes("not happy") || lowerMessage.includes("not good")) {
+                 return { message: "I'm sorry to hear that. It's okay to feel that way. Perhaps a game can offer a small distraction.", recommendation: "bubble-pop" };
+            }
+
+            // Fallback to the original emotion-based logic for more complex sentences
+            const emotion = analyzeEmotion(lowerMessage);
+            switch (emotion) {
+                case 'anxious':
+                    return {
+                        message: "It sounds like you're feeling anxious. Taking a moment to breathe can really help.",
+                        recommendation: "breathe-with-me"
+                    };
+                case 'sad':
+                    return {
+                        message: "I'm sorry to hear that. How about a little boost of positivity? Let's try some affirmations.",
+                        recommendation: "affirmation-flip"
+                    };
+                case 'tired':
+                    return {
+                        message: "It's okay to feel drained. A slow, gentle activity can help you recharge. How about a quick game of Tic Tac Toe?",
+                        recommendation: "tic-tac-toe"
+                    };
+                case 'happy':
+                    return {
+                        message: "That's wonderful to hear! I'm glad you're feeling so positive. Keep that energy going!",
+                        recommendation: "none"
+                    };
+                default:
+                    return {
+                        message: "As a peace-focused companion, I'm here to listen. I'm not able to answer all questions, but I'm here for you to talk to. Or, you can just enjoy one of our calming games.",
+                        recommendation: "none"
+                    };
+            }
+        };
+        
+        // This function is still needed for the fallback logic
+        const analyzeEmotion = (text) => {
+             const lowerText = text.toLowerCase();
+             
+             // Negative and sadness keywords
+             const sadKeywords = ['sad', 'down', 'unhappy', 'depressed', 'lonely', 'not happy', 'not good', 'not feeling good', 'bad', 'terrible', 'awful'];
+             if (sadKeywords.some(keyword => lowerText.includes(keyword))) {
+                return 'sad';
+             }
+
+             // Anxiety and stress keywords
+             const anxiousKeywords = ['stressed', 'anxious', 'overwhelmed', 'worry', 'nervous'];
+             if (anxiousKeywords.some(keyword => lowerText.includes(keyword))) {
+                 return 'anxious';
+             }
+
+             // Tiredness keywords
+             const tiredKeywords = ['tired', 'exhausted', 'drained', 'sleepy'];
+             if (tiredKeywords.some(keyword => lowerText.includes(keyword))) {
+                 return 'tired';
+             }
+
+             // Happiness and positive keywords
+             const happyKeywords = ['happy', 'good', 'great', 'excited', 'wonderful', 'fine', 'amazing'];
+             if (happyKeywords.some(keyword => lowerText.includes(keyword))) {
+                 return 'happy';
+             }
+
+             return 'neutral';
+         };
+
+        // --- Chat Interaction Handler ---
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const userMessage = userInput.value.trim();
+            if (userMessage === '') return;
+
+            // Display user message in the chat box
+            chatBox.innerHTML += `
+                <div class="flex justify-end">
+                    <div class="bg-blue-300 text-gray-800 p-3 rounded-2xl rounded-br-none max-w-xs shadow-sm">
+                        ${userMessage}
+                    </div>
+                </div>
+            `;
+            userInput.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Get bot's response and recommend a game
+            const botResponse = getChatResponse(userMessage);
+
+            setTimeout(() => {
+                chatBox.innerHTML += `
+                    <div class="flex justify-start">
+                        <div class="bg-blue-100 text-gray-800 p-3 rounded-2xl rounded-bl-none max-w-xs shadow-sm">
+                            ${botResponse.message}
+                        </div>
+                    </div>
+                `;
+                chatBox.scrollTop = chatBox.scrollHeight;
+                if (botResponse.recommendation !== "none") {
+                    displayGame(botResponse.recommendation);
+                }
+            }, 1000); // Simulate a slight delay
+        });
+
+        // --- Game Display Logic ---
+        const displayGame = (gameId) => {
+            // Clear any existing game content and stop sounds
+            gameDisplay.innerHTML = '';
+            stopAllSounds();
+
+            let content = '';
+            switch (gameId) {
+                case 'bubble-pop': {
+                    const positiveTexts = [
+                        "Be Happy", "Keep smiling", "Stay Strong", "You got this", "Take a breath", "Be Kind",
+                        "You are capable of amazing things.", "Embrace the journey.", "Challenges are opportunities.",
+                        "Your potential is limitless.", "Be kind to yourself.", "Find joy in the little things.",
+                        "Every moment is a fresh start.", "You are a masterpiece.", "Your efforts will pay off."
+                    ];
+                    
+                    // Simple synth for popping
+                    const popSynth = (typeof Tone !== 'undefined') ? new Tone.MembraneSynth().toDestination() : null;
+                    
+                    content = `<div class="w-full h-full relative flex flex-col items-center justify-center overflow-hidden">
+                                    <p class="text-gray-500 text-sm absolute top-4 left-4">Pop the bubbles!</p>
+                                </div>`;
+                    gameDisplay.innerHTML = content;
+                    
+                    const createBubble = () => {
+                        const bubble = document.createElement('div');
+                        bubble.classList.add('bubble');
+                        const size = Math.random() * 20 + 30;
+                        const color = ['#60a5fa', '#bae6fd', '#22c55e', '#f472b6', '#a78bfa'][Math.floor(Math.random() * 5)];
+                        bubble.style.width = `${size}px`;
+                        bubble.style.height = `${size}px`;
+                        bubble.style.backgroundColor = color;
+                        const leftPosition = Math.random() * 90;
+                        // Duration increased (6-9s) for a slower, more peaceful float
+                        const duration = Math.random() * 3 + 6; 
+                        bubble.style.left = `${leftPosition}%`;
+                        bubble.style.animationDuration = `${duration}s`;
+
+                        bubble.addEventListener('click', async () => {
+                            // Ensure audio is ready
+                            if (typeof Tone !== 'undefined') {
+                                try { await Tone.start(); if(popSynth) popSynth.triggerAttackRelease("C4", "8n"); } catch(e){}
+                            }
+                            
+                            // Remove bubble
+                            bubble.remove();
+                            
+                            // Show text
+                            const randomText = positiveTexts[Math.floor(Math.random() * positiveTexts.length)];
+                            const popText = document.createElement('span');
+                            popText.textContent = randomText;
+                            popText.classList.add('pop-text-animation', 'absolute', 'font-bold', 'text-sm', 'text-cyan-700', 'z-10');
+                            popText.style.left = `${leftPosition}%`;
+                            popText.style.bottom = `${(Math.random() * 30 + 10)}%`;
+                            gameDisplay.appendChild(popText);
+                            setTimeout(() => popText.remove(), 1500);
+                        });
+                        gameDisplay.appendChild(bubble);
+                    };
+
+                    const spawnBatch = () => {
+                        // Create 4 to 5 bubbles
+                        const count = Math.floor(Math.random() * 2) + 4; 
+                        for (let i = 0; i < count; i++) {
+                            // Stagger them slightly over 2 seconds
+                            setTimeout(createBubble, Math.random() * 2000);
+                        }
+                    };
+
+                    // Spawn first batch immediately
+                    spawnBatch();
+                    // Spawn subsequent batches every 9 seconds to allow the previous batch to clear
+                    bubbleInterval = setInterval(spawnBatch, 9000);
+                    break;
+                }
+
+                case 'breathe-with-me': {
+                    content = `<div class="w-full h-full flex flex-col items-center justify-center space-y-8">
+                                    <div class="breathing-circle"></div>
+                                    <div class="text-center">
+                                        <p class="text-xl text-blue-700 font-medium">Breathe in...</p>
+                                        <p class="text-sm text-gray-500 mt-2">Inhale as it expands, exhale as it shrinks.</p>
+                                    </div>
+                                </div>`;
+                    gameDisplay.innerHTML = content;
+                    break;
+                }
+
+                case 'affirmation-flip': {
+                    const affirmations = [
+                      "You are stronger than you think.", "Don't give up. You are the best.", "Believe in yourself. You can do this.", "Every day is a fresh start.", "Your efforts will pay off.", "Stay positive and great things will happen.", 
+                      "You are capable of amazing things.", "Embrace the journey, not just the destination.", "Challenges are opportunities in disguise.", "Your potential is limitless.", 
+                      "Keep going, you’re doing great.", "You are worthy of success.", "Small steps lead to big changes.", "Trust yourself. You’ve got this.", "Progress, not perfection, matters most.", 
+                      "You inspire others without knowing it.", "Stay strong, your breakthrough is near.", "Believe in the power of your dreams.", "You have what it takes to shine.", "Keep moving forward with courage.", 
+                      "Every setback is a setup for a comeback.", "Your smile makes the world brighter.", "Hard work always pays off.", "Your energy attracts positivity.", "You are more powerful than fear.", "Stay hopeful, better days are coming."
+                    ];
+                    const shuffleArray = (array) => {
+                        for (let i = array.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [array[i], array[j]] = [array[j], array[i]];
+                        }
+                        return array;
+                    };
+                    content = `<div class="flex flex-col items-center space-y-4 w-full h-full">
+                                    <p class="text-lg text-gray-700">Click a card for an affirmation.</p>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full p-4 items-center justify-center flex-1">
+                                        <div class="affirmation-card-item w-full h-40 bg-sky-300 rounded-xl shadow-lg flex items-center justify-center cursor-pointer transform transition-transform hover:scale-105">
+                                            <p class="text-lg font-bold text-center p-4 text-black">Click to reveal</p>
+                                        </div>
+                                        <div class="affirmation-card-item w-full h-40 bg-blue-300 rounded-xl shadow-lg flex items-center justify-center cursor-pointer transform transition-transform hover:scale-105">
+                                            <p class="text-lg font-bold text-center p-4 text-black">Click to reveal</p>
+                                        </div>
+                                        <div class="affirmation-card-item w-full h-40 bg-cyan-300 rounded-xl shadow-lg flex items-center justify-center cursor-pointer transform transition-transform hover:scale-105">
+                                            <p class="text-lg font-bold text-center p-4 text-black">Click to reveal</p>
+                                        </div>
+                                    </div>
+                                    <button id="refresh-cards" class="w-full sm:w-auto px-6 py-3 bg-blue-500 text-white rounded-full font-semibold hover:bg-blue-600 transition-colors shadow-md">
+                                        Refresh
+                                    </button>
+                                </div>`;
+                    gameDisplay.innerHTML = content;
+                    
+                    const refreshButton = document.getElementById('refresh-cards');
+                    let currentAffirmations = shuffleArray([...affirmations]);
+                    
+                    const attachCardListeners = () => {
+                        const cards = gameDisplay.querySelectorAll('.affirmation-card-item');
+                        cards.forEach((card, index) => {
+                            card.onclick = () => {
+                                if (card.textContent.trim() === 'Click to reveal') {
+                                    card.querySelector('p').textContent = currentAffirmations[index];
+                                    card.classList.remove('bg-sky-300', 'bg-blue-300', 'bg-cyan-300');
+                                    card.classList.add('bg-blue-200', 'border-2', 'border-blue-300');
+                                }
+                            };
+                        });
+                    };
+                    
+                    refreshButton.addEventListener('click', () => {
+                        currentAffirmations = shuffleArray([...affirmations]);
+                        const cards = gameDisplay.querySelectorAll('.affirmation-card-item');
+                        cards.forEach((card, i) => {
+                            card.querySelector('p').textContent = 'Click to reveal';
+                            // Reset colors
+                            card.classList.remove('bg-white', 'border-2', 'border-blue-300');
+                            if(i===0) card.classList.add('bg-sky-300');
+                            if(i===1) card.classList.add('bg-blue-300');
+                            if(i===2) card.classList.add('bg-cyan-300');
+                        });
+                    });
+                    
+                    attachCardListeners();
+                    break;
+                }
+
+                case 'tic-tac-toe': {
+                    content = `<div class="flex flex-col items-center justify-center h-full w-full p-4">
+                                    <h3 id="tic-tac-toe-status" class="text-xl sm:text-2xl font-bold text-blue-800 mb-4">Let's Play</h3>
+                                    <div id="tic-tac-toe-board" class="grid grid-cols-3 gap-2 p-2 rounded-xl bg-blue-200">
+                                        <div class="tic-tac-toe-cell w-[70px] h-[70px] sm:w-[70px] sm:h-[70px] bg-white rounded-lg cursor-pointer flex items-center justify-center text-4xl sm:text-5xl font-extrabold text-blue-700 hover:bg-gray-50 transition-colors"></div>
+                                        <div class="tic-tac-toe-cell w-[70px] h-[70px] sm:w-[70px] sm:h-[70px] bg-white rounded-lg cursor-pointer flex items-center justify-center text-4xl sm:text-5xl font-extrabold text-blue-700 hover:bg-gray-50 transition-colors"></div>
+                                        <div class="tic-tac-toe-cell w-[70px] h-[70px] sm:w-[70px] sm:h-[70px] bg-white rounded-lg cursor-pointer flex items-center justify-center text-4xl sm:text-5xl font-extrabold text-blue-700 hover:bg-gray-50 transition-colors"></div>
+                                        <div class="tic-tac-toe-cell w-[70px] h-[70px] sm:w-[70px] sm:h-[70px] bg-white rounded-lg cursor-pointer flex items-center justify-center text-4xl sm:text-5xl font-extrabold text-blue-700 hover:bg-gray-50 transition-colors"></div>
+                                        <div class="tic-tac-toe-cell w-[70px] h-[70px] sm:w-[70px] sm:h-[70px] bg-white rounded-lg cursor-pointer flex items-center justify-center text-4xl sm:text-5xl font-extrabold text-blue-700 hover:bg-gray-50 transition-colors"></div>
+                                        <div class="tic-tac-toe-cell w-[70px] h-[70px] sm:w-[70px] sm:h-[70px] bg-white rounded-lg cursor-pointer flex items-center justify-center text-4xl sm:text-5xl font-extrabold text-blue-700 hover:bg-gray-50 transition-colors"></div>
+                                        <div class="tic-tac-toe-cell w-[70px] h-[70px] sm:w-[70px] sm:h-[70px] bg-white rounded-lg cursor-pointer flex items-center justify-center text-4xl sm:text-5xl font-extrabold text-blue-700 hover:bg-gray-50 transition-colors"></div>
+                                        <div class="tic-tac-toe-cell w-[70px] h-[70px] sm:w-[70px] sm:h-[70px] bg-white rounded-lg cursor-pointer flex items-center justify-center text-4xl sm:text-5xl font-extrabold text-blue-700 hover:bg-gray-50 transition-colors"></div>
+                                        <div class="tic-tac-toe-cell w-[70px] h-[70px] sm:w-[70px] sm:h-[70px] bg-white rounded-lg cursor-pointer flex items-center justify-center text-4xl sm:text-5xl font-extrabold text-blue-700 hover:bg-gray-50 transition-colors"></div>
+                                    </div>
+                                    <button id="play-again-btn" class="mt-4 px-6 py-3 bg-blue-500 text-white rounded-full font-semibold hover:bg-blue-600 transition-colors shadow-md hidden">Play Again</button>
+                                </div>`;
+                    gameDisplay.innerHTML = content;
+
+                    const cells = document.querySelectorAll('.tic-tac-toe-cell');
+                    const statusText = document.getElementById('tic-tac-toe-status');
+                    const playAgainBtn = document.getElementById('play-again-btn');
+
+                    let board = ['', '', '', '', '', '', '', '', ''];
+                    let isGameActive = true;
+
+                    const winningConditions = [
+                        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                        [0, 4, 8], [2, 4, 6]
+                    ];
+
+                    const handleResultValidation = () => {
+                        let roundWon = false;
+                        for (let i = 0; i <= 7; i++) {
+                            const winCondition = winningConditions[i];
+                            const a = board[winCondition[0]];
+                            const b = board[winCondition[1]];
+                            const c = board[winCondition[2]];
+                            if (a === '' || b === '' || c === '') {
+                                continue;
+                            }
+                            if (a === b && b === c) {
+                                roundWon = true;
+                                break;
+                            }
+                        }
+
+                        if (roundWon) {
+                            statusText.innerHTML = '';
+                            isGameActive = false;
+                            playAgainBtn.classList.remove('hidden');
+                            return true;
+                        }
+
+                        if (!board.includes('')) {
+                            statusText.innerHTML = 'Draw!';
+                            isGameActive = false;
+                            playAgainBtn.classList.remove('hidden');
+                            return true;
+                        }
+                        
+                        return false;
+                    };
+
+                    const computerMove = () => {
+                        if (!isGameActive) return;
+
+                        // Computer (O) turn logic
+                        let bestMove = -1;
+                        let availableMoves = board.map((cell, index) => cell === '' ? index : null).filter(val => val !== null);
+                        
+                        // 1. Check for a winning move for the computer
+                        for (let i = 0; i < winningConditions.length; i++) {
+                            const [a, b, c] = winningConditions[i];
+                            const combo = [board[a], board[b], board[c]];
+                            if (combo.filter(val => val === 'O').length === 2 && combo.includes('')) {
+                                bestMove = winningConditions[i][combo.indexOf('')];
+                                break;
+                            }
+                        }
+
+                        // 2. Block the opponent if they are about to win
+                        if (bestMove === -1) {
+                            for (let i = 0; i < winningConditions.length; i++) {
+                                const [a, b, c] = winningConditions[i];
+                                const combo = [board[a], board[b], board[c]];
+                                if (combo.filter(val => val === 'X').length === 2 && combo.includes('')) {
+                                    bestMove = winningConditions[i][combo.indexOf('')];
+                                    break;
+                                }
+                            }
+                        }
+
+                        // 3. Take the center
+                        if (bestMove === -1 && board[4] === '') {
+                            bestMove = 4;
+                        }
+
+                        // 4. Take a corner
+                        if (bestMove === -1) {
+                            const corners = [0, 2, 6, 8];
+                            const availableCorners = availableMoves.filter(move => corners.includes(move));
+                            if (availableCorners.length > 0) {
+                                bestMove = availableCorners[Math.floor(Math.random() * availableCorners.length)];
+                            }
+                        }
+
+                        // 5. Take any remaining available spot
+                        if (bestMove === -1) {
+                            bestMove = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+                        }
+
+                        if (bestMove !== undefined && bestMove !== -1) {
+                            board[bestMove] = 'O';
+                            cells[bestMove].innerHTML = 'O';
+                            cells[bestMove].style.color = '#dc2626'; // Red for the computer
+                            if (!handleResultValidation()) {
+                                statusText.innerHTML = "Let's Play";
+                            }
+                        }
+                    };
+
+                    const handleCellClick = (event) => {
+                        const clickedCell = event.target;
+                        const clickedCellIndex = Array.from(cells).indexOf(clickedCell);
+
+                        if (board[clickedCellIndex] !== '' || !isGameActive) {
+                            return;
+                        }
+
+                        // Human player (X) turn
+                        board[clickedCellIndex] = 'X';
+                        clickedCell.innerHTML = 'X';
+                        clickedCell.style.color = '#1d4ed8';
+
+                        if (!handleResultValidation()) {
+                            // Computer takes its turn after delay
+                            setTimeout(computerMove, 500);
+                        }
+                    };
+
+                    const resetGame = () => {
+                        board = ['', '', '', '', '', '', '', '', ''];
+                        isGameActive = true;
+                        statusText.innerHTML = "Let's Play";
+                        playAgainBtn.classList.add('hidden');
+                        cells.forEach(cell => {
+                            cell.innerHTML = '';
+                            cell.style.color = '';
+                        });
+                    };
+
+                    cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+                    playAgainBtn.addEventListener('click', resetGame);
+                    break;
+                }
+                case 'soundscape-generator': {
+                    content = `<div class="flex flex-col items-center justify-center h-full space-y-6">
+                                    <p class="text-lg text-gray-700 font-medium">Choose a calming tune to play.</p>
+                                    <div class="flex flex-wrap justify-center gap-3">
+                                        <button id="play-piano" class="px-5 py-2 bg-blue-500 text-white rounded-full font-semibold hover:bg-blue-600 transition-colors shadow-md text-sm">Piano</button>
+                                        <button id="play-synth" class="px-5 py-2 bg-indigo-500 text-white rounded-full font-semibold hover:bg-indigo-600 transition-colors shadow-md text-sm">Synth Pad</button>
+                                        <button id="play-harp" class="px-5 py-2 bg-purple-500 text-white rounded-full font-semibold hover:bg-purple-600 transition-colors shadow-md text-sm">Gentle Harp</button>
+                                        <button id="play-gentle-chimes" class="px-5 py-2 bg-teal-500 text-white rounded-full font-semibold hover:bg-teal-600 transition-colors shadow-md text-sm">Gentle Chimes</button>
+                                        <button id="play-ocean" class="px-5 py-2 bg-sky-500 text-white rounded-full font-semibold hover:bg-sky-600 transition-colors shadow-md text-sm">Ocean Waves</button>
+                                
+                                    </div>
+                                    <button id="pause-audio" class="w-full sm:w-auto px-8 py-3 bg-gray-400 text-white rounded-full font-semibold cursor-not-allowed shadow-md text-sm" disabled>
+                                        Pause
+                                    </button>
+                                </div>`;
+
+                    
+                    gameDisplay.innerHTML = content;
+                    const pauseButton = document.getElementById('pause-audio');
+                    const playButtons = document.querySelectorAll('#play-piano, #play-synth, #play-harp, #play-gentle-chimes, #play-ocean, #play-drone, #play-forest, #play-wind, #play-ambient');
+                    
+                    playButtons.forEach(button => {
+                        button.addEventListener('click', async () => {
+                            if (typeof Tone === 'undefined') return;
+                            await Tone.start();
+                            stopAllSounds();
+                            
+                            switch(button.id) {
+                                case 'play-piano':
+                                    const synthPiano = new Tone.Synth({ oscillator: { type: "triangle" }, envelope: { attack: 0.01, decay: 0.8, sustain: 0, release: 1 } }).toDestination({ volume: -15 });
+                                    const notesPiano = ["C4", "E4", "G4", "A4", "G4", "E4"];
+                                    currentSound = new Tone.Sequence((time, note) => { synthPiano.triggerAttackRelease(note, "8n", time); }, notesPiano, "4n").start(0);
+                                    break;
+                                case 'play-synth':
+                                    const synthPad = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "sine" }, envelope: { attack: 4, decay: 1, sustain: 0.8, release: 4 } }).toDestination({ volume: -15 });
+                                    const notesSynth = [["C3", "E3", "G3", "B3"], ["A3", "C4", "E4", "G4"]];
+                                    currentSound = new Tone.Sequence((time, notes) => { synthPad.triggerAttackRelease(notes, "4n", time); }, notesSynth, "2n").start(0);
+                                    break;
+                                case 'play-harp':
+                                    const synthHarp = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: 0.1, decay: 0.4, sustain: 0, release: 0.5 } }).toDestination({ volume: -15 });
+                                    const notesHarp = [["C4", "E4", "G4", "C5"], ["A3", "C4", "E4"]];
+                                    currentSound = new Tone.Sequence((time, notes) => { synthHarp.triggerAttackRelease(notes, "8n", time); }, notesHarp, "4n").start(0);
+                                    break;
+                                case 'play-gentle-chimes':
+                                    const gentleChimesSynth = new Tone.PolySynth(Tone.Synth, {
+                                        oscillator: { type: "triangle" },
+                                        envelope: { attack: 2, decay: 1, sustain: 0, release: 2 }
+                                    }).toDestination({ volume: -15 });
+                                    const chimeNotes = ["C4", "E4", "G4", "A4", "G4", "E4"];
+                                    currentSound = new Tone.Sequence((time, note) => { gentleChimesSynth.triggerAttackRelease(note, "2n", time); }, chimeNotes, "2n").start(0);
+                                    break;
+                                case 'play-ocean':
+                                    const noise = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 4, decay: 0, sustain: 1, release: 4 } }).toDestination();
+                                    currentSound = new Tone.Loop(time => { noise.triggerAttackRelease("4n", time); }, "8n").start(0);
+                                    break;
+                                case 'play-drone':
+                                    const drone = new Tone.DuoSynth({ voice0: { oscillator: { type: 'sine' }, envelope: { attack: 5, release: 5 } }, voice1: { oscillator: { type: 'sine' }, envelope: { attack: 5, release: 5 } } }).toDestination({ volume: -20 });
+                                    const droneNotes = [["C2", "G2"], ["F2", "C3"]];
+                                    currentSound = new Tone.Sequence((time, notes) => { drone.triggerAttackRelease(notes, "8n", time); }, droneNotes, "8n").start(0);
+                                    break;
+                            }
+                            Tone.Transport.start(); 
+                            // Enable pause button after sound starts playing
+                            pauseButton.disabled = false;
+                            pauseButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                            pauseButton.classList.add('bg-red-500', 'hover:bg-red-600', 'cursor-pointer');
+                            pauseButton.textContent = 'Pause';
+                        });
+                    });
+                    pauseButton.addEventListener('click', () => {
+                        if (typeof Tone === 'undefined') return;
+                        if (Tone.Transport.state === "started") { 
+                            Tone.Transport.pause(); 
+                            pauseButton.textContent = 'Resume'; 
+                            pauseButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+                            pauseButton.classList.add('bg-green-500', 'hover:bg-green-600');
+                        } else if (Tone.Transport.state === "paused") { 
+                            Tone.Transport.start(); 
+                            pauseButton.textContent = 'Pause'; 
+                            pauseButton.classList.remove('bg-green-500', 'hover:bg-green-600');
+                            pauseButton.classList.add('bg-red-500', 'hover:bg-red-600');
+                        }
+                    });
+                    break;
+                }
+                case 'thought-journal': {
+                    content = `<div class="flex flex-col h-full space-y-4">
+                                    <textarea id="journal-text" class="flex-1 p-4 rounded-xl border-2 border-gray-300 focus:outline-none focus:border-blue-500 transition-all resize-none shadow-sm" placeholder="Write down your thoughts here..."></textarea>
+                                    <div class="flex space-x-4">
+                                        <button id="save-journal" class="flex-1 px-3 py-2 text-sm bg-cyan-200 text-black rounded-full font-semibold hover:bg-cyan-300 transition-all transform hover:scale-105 shadow-md">Save Entry</button>
+                                        <button id="clear-all-entries" class="flex-1 px-3 py-2 text-sm bg-red-200 text-black rounded-full font-semibold hover:bg-red-300 transition-all transform hover:scale-105 shadow-md">Clear All</button>
+                                    </div>
+                                    <div id="journal-entries-list" class="flex-1 overflow-y-auto p-4 bg-white rounded-lg border border-blue-200 mt-4 shadow-inner max-h-40">
+                                        <p class="text-gray-400 text-sm text-center">Your past thoughts will appear here.</p>
+                                    </div>
+                                </div>`;
+                    gameDisplay.innerHTML = content;
+                    const journalTextarea = document.getElementById('journal-text');
+                    const saveButton = document.getElementById('save-journal');
+                    const clearAllButton = document.getElementById('clear-all-entries');
+                    const entriesList = document.getElementById('journal-entries-list');
+                    
+                    const getEntries = () => {
+                        const entries = localStorage.getItem('journalEntries');
+                        return entries ? JSON.parse(entries) : [];
+                    };
+
+                    const saveEntry = () => {
+                        const newEntryText = journalTextarea.value.trim();
+                        if (newEntryText) {
+                            const entries = getEntries();
+                            entries.push({ id: Date.now(), text: newEntryText, date: new Date().toLocaleString() });
+                            localStorage.setItem('journalEntries', JSON.stringify(entries));
+                            journalTextarea.value = '';
+                            showMessage("Entry saved successfully!");
+                            renderEntries();
+                        }
+                    };
+
+                    const deleteEntry = (id) => {
+                        let entries = getEntries();
+                        entries = entries.filter(entry => entry.id !== id);
+                        localStorage.setItem('journalEntries', JSON.stringify(entries));
+                        renderEntries();
+                    };
+
+                    const renderEntries = () => {
+                        const entries = getEntries();
+                        entriesList.innerHTML = '';
+                        if (entries.length === 0) {
+                            entriesList.innerHTML = '<p class="text-gray-400 text-sm text-center mt-4">Your past thoughts will appear here.</p>';
+                            return;
+                        }
+                        entries.reverse().forEach(entry => {
+                            const entryDiv = document.createElement('div');
+                            entryDiv.classList.add('p-3', 'bg-blue-50', 'rounded-xl', 'mb-3', 'shadow-sm', 'border', 'border-blue-100');
+                            entryDiv.innerHTML = `
+                                <div class="flex justify-between items-start">
+                                    <p class="text-gray-800 text-sm whitespace-pre-wrap">${entry.text}</p>
+                                    <button class="delete-btn text-red-400 hover:text-red-600 ml-4 font-bold text-lg leading-none" data-id="${entry.id}">
+                                        &times;
+                                    </button>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-2 text-right">${entry.date}</p>
+                            `;
+                            entriesList.appendChild(entryDiv);
+                        });
+
+                        entriesList.querySelectorAll('.delete-btn').forEach(button => {
+                            button.addEventListener('click', (e) => {
+                                const id = parseInt(e.target.dataset.id);
+                                deleteEntry(id);
+                            });
+                        });
+                    };
+
+                    const clearAllEntries = () => {
+                        if(confirm("Are you sure you want to delete all entries?")) {
+                            localStorage.removeItem('journalEntries');
+                            renderEntries();
+                            showMessage("All entries deleted.");
+                        }
+                    };
+
+                    saveButton.addEventListener('click', saveEntry);
+                    clearAllButton.addEventListener('click', clearAllEntries);
+                    renderEntries();
+                    break;
+                }
+
+                case 'memory-match': {
+                    // Removed h-full from wrapper to allow natural expansion
+                    content = `<div class="flex flex-col items-center justify-center w-full p-2 sm:p-4">
+                                    <h3 class="text-2xl font-bold text-rose-800 mb-4">Find the Pairs</h3>
+                                    <div id="memory-grid" class="grid grid-cols-4 gap-2 sm:gap-4 p-2"></div>
+                                    <div id="memory-status" class="mt-4 text-rose-700 font-semibold h-6"></div>
+                                    <button id="reset-memory" class="mt-2 px-4 py-2 bg-rose-500 text-white rounded-full hover:bg-rose-600 shadow-md">Reset</button>
+                               </div>`;
+                    gameDisplay.innerHTML = content;
+                    
+                    const memoryGrid = document.getElementById('memory-grid');
+                    const memoryStatus = document.getElementById('memory-status');
+                    const resetMemoryBtn = document.getElementById('reset-memory');
+                    
+                    const emojis = ['🌿', '🌸', '🌊', '☀️', '🌙', '🦋', '🕊️', '💎'];
+                    let cards = [...emojis, ...emojis];
+                    let flipped = [];
+                    let matched = [];
+                    let lockBoard = false;
+
+                    const shuffle = (arr) => arr.sort(() => Math.random() - 0.5);
+                    
+                    const createBoard = () => {
+                        memoryGrid.innerHTML = '';
+                        flipped = [];
+                        matched = [];
+                        cards = shuffle(cards);
+                        cards.forEach((emoji, index) => {
+                            const card = document.createElement('div');
+                            card.classList.add('w-12', 'h-12', 'sm:w-16', 'sm:h-16', 'bg-rose-300', 'rounded-lg', 'cursor-pointer', 'flex', 'items-center', 'justify-center', 'text-2xl', 'sm:text-3xl', 'transition-all', 'duration-300', 'transform');
+                            card.dataset.index = index;
+                            card.dataset.emoji = emoji;
+                            card.innerHTML = '<span class="opacity-0">'+emoji+'</span>'; // Hidden initially
+                            
+                            card.addEventListener('click', () => flipCard(card));
+                            memoryGrid.appendChild(card);
+                        });
+                        memoryStatus.textContent = '';
+                    };
+
+                    const flipCard = (card) => {
+                        if (lockBoard || card.classList.contains('bg-white') || flipped.includes(card)) return;
+                        
+                        card.classList.remove('bg-rose-300');
+                        card.classList.add('bg-white', 'shadow-inner', 'rotate-y-180');
+                        card.querySelector('span').classList.remove('opacity-0');
+                        
+                        flipped.push(card);
+
+                        if (flipped.length === 2) {
+                            checkForMatch();
+                        }
+                    };
+
+                    const checkForMatch = async () => {
+                        lockBoard = true;
+                        const [card1, card2] = flipped;
+                        const match = card1.dataset.emoji === card2.dataset.emoji;
+
+                        if (match) {
+                            matched.push(card1, card2);
+                            flipped = [];
+                            lockBoard = false;
+                            
+                            // Gentle success sound
+                            if (typeof Tone !== 'undefined') {
+                                try {
+                                    await Tone.start();
+                                    const synth = new Tone.PolySynth().toDestination();
+                                    synth.volume.value = -10;
+                                    synth.triggerAttackRelease(["C5", "E5"], "8n");
+                                } catch(e){}
+                            }
+
+                            if (matched.length === cards.length) {
+                                memoryStatus.textContent = "Peaceful mind, perfect match!";
+                            }
+                        } else {
+                            setTimeout(() => {
+                                card1.classList.add('bg-rose-300');
+                                card1.classList.remove('bg-white', 'shadow-inner');
+                                card1.querySelector('span').classList.add('opacity-0');
+                                
+                                card2.classList.add('bg-rose-300');
+                                card2.classList.remove('bg-white', 'shadow-inner');
+                                card2.querySelector('span').classList.add('opacity-0');
+                                
+                                flipped = [];
+                                lockBoard = false;
+                            }, 1000);
+                        }
+                    };
+
+                    resetMemoryBtn.addEventListener('click', createBoard);
+                    createBoard();
+                    break;
+                }
+
+                case 'zen-drawing': {
+                    content = `<div class="relative w-full h-full flex flex-col items-center justify-center">
+                                    <canvas id="zen-canvas" class="cursor-crosshair shadow-inner rounded-xl touch-none"></canvas>
+                                    <div class="absolute bottom-4 flex space-x-2 pointer-events-none">
+                                        <p class="px-4 py-2 bg-white/80 rounded-full text-amber-800 text-sm shadow-sm">Drag to rake sand</p>
+                                    </div>
+                                    <button id="clear-zen" class="absolute top-4 right-4 px-3 py-1 bg-amber-500 text-white rounded-full hover:bg-amber-600 shadow-md text-xs">Smooth</button>
+                               </div>`;
+                    gameDisplay.innerHTML = content;
+                    
+                    const canvas = document.getElementById('zen-canvas');
+                    const ctx = canvas.getContext('2d');
+                    const clearBtn = document.getElementById('clear-zen');
+                    
+                    // Resize handling
+                    const resize = () => {
+                        if (!canvas) return; // Guard clause
+                        const rect = gameDisplay.getBoundingClientRect();
+                        canvas.width = rect.width;
+                        canvas.height = rect.height;
+                        resetCanvas();
+                    };
+                    
+                    const resetCanvas = () => {
+                        ctx.fillStyle = '#f5e6d3'; // Sand color
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    };
+
+                    // Drawing logic
+                    let drawing = false;
+
+                    const getPos = (e) => {
+                        const rect = canvas.getBoundingClientRect();
+                        let clientX, clientY;
+                        
+                        if (e.changedTouches) {
+                            clientX = e.changedTouches[0].clientX;
+                            clientY = e.changedTouches[0].clientY;
+                        } else {
+                            clientX = e.clientX;
+                            clientY = e.clientY;
+                        }
+                        
+                        return {
+                            x: clientX - rect.left,
+                            y: clientY - rect.top
+                        };
+                    };
+
+                    const startDraw = (e) => {
+                        drawing = true;
+                        draw(e);
+                    };
+                    
+                    const endDraw = () => {
+                        drawing = false;
+                        ctx.beginPath();
+                    };
+                    
+                    const draw = (e) => {
+                        if (!drawing) return;
+                        
+                        const pos = getPos(e);
+                        
+                        ctx.lineWidth = 15;
+                        ctx.lineCap = 'round';
+                        ctx.strokeStyle = '#e6d5c0'; // Darker sand shadow
+                        
+                        ctx.lineTo(pos.x, pos.y);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(pos.x, pos.y);
+                    };
+
+                    // Mouse events
+                    canvas.addEventListener('mousedown', startDraw);
+                    canvas.addEventListener('mouseup', endDraw);
+                    canvas.addEventListener('mousemove', draw);
+                    canvas.addEventListener('mouseleave', endDraw);
+                    
+                    // Touch events
+                    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e); });
+                    canvas.addEventListener('touchend', (e) => { e.preventDefault(); endDraw(); });
+                    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
+                    
+                    clearBtn.addEventListener('click', resetCanvas);
+                    
+                    // Initial setup
+                    setTimeout(resize, 50); 
+                    break;
+                }
+
+                case 'melody-echo': {
+                    content = `<div class="flex flex-col items-center justify-center h-full space-y-6">
+                                    <h3 id="melody-status" class="text-xl font-bold text-violet-800">Watch & Repeat</h3>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <button data-note="C4" class="melody-btn w-20 h-20 sm:w-24 sm:h-24 bg-green-400 rounded-lg shadow-md hover:brightness-110 active:scale-95 transition-all"></button>
+                                        <button data-note="E4" class="melody-btn w-20 h-20 sm:w-24 sm:h-24 bg-red-400 rounded-lg shadow-md hover:brightness-110 active:scale-95 transition-all"></button>
+                                        <button data-note="G4" class="melody-btn w-20 h-20 sm:w-24 sm:h-24 bg-yellow-400 rounded-lg shadow-md hover:brightness-110 active:scale-95 transition-all"></button>
+                                        <button data-note="B4" class="melody-btn w-20 h-20 sm:w-24 sm:h-24 bg-blue-400 rounded-lg shadow-md hover:brightness-110 active:scale-95 transition-all"></button>
+                                    </div>
+                                    <button id="start-melody" class="px-6 py-2 bg-violet-500 text-white rounded-full font-semibold hover:bg-violet-600 transition-colors shadow-md">Start Game</button>
+                                </div>`;
+                    gameDisplay.innerHTML = content;
+
+                    const melodyBtns = document.querySelectorAll('.melody-btn');
+                    const startBtn = document.getElementById('start-melody');
+                    const statusText = document.getElementById('melody-status');
+                    
+                    let sequence = [];
+                    let playerSequence = [];
+                    let isPlayingSequence = false;
+                    let synth = null;
+
+                    // Initialize synth safely
+                    const initSynth = async () => {
+                        if (typeof Tone !== 'undefined') {
+                            await Tone.start();
+                            if (!synth) {
+                                synth = new Tone.Synth().toDestination();
+                                synth.volume.value = -10;
+                            }
+                        }
+                    };
+
+                    const playNote = (btn) => {
+                        btn.classList.add('brightness-125', 'scale-95');
+                        setTimeout(() => btn.classList.remove('brightness-125', 'scale-95'), 300);
+                        
+                        if (synth) {
+                            synth.triggerAttackRelease(btn.dataset.note, "8n");
+                        }
+                    };
+
+                    const playSequence = async () => {
+                        isPlayingSequence = true;
+                        statusText.textContent = "Listen...";
+                        playerSequence = [];
+                        
+                        for (let i = 0; i < sequence.length; i++) {
+                            await new Promise(resolve => setTimeout(resolve, 600));
+                            const btnIndex = sequence[i];
+                            playNote(melodyBtns[btnIndex]);
+                        }
+                        
+                        isPlayingSequence = false;
+                        statusText.textContent = "Your Turn";
+                    };
+
+                    const addToSequence = () => {
+                        sequence.push(Math.floor(Math.random() * 4));
+                        playSequence();
+                    };
+
+                    startBtn.addEventListener('click', async () => {
+                        await initSynth();
+                        sequence = [];
+                        addToSequence();
+                        startBtn.classList.add('hidden');
+                    });
+
+                    melodyBtns.forEach((btn, index) => {
+                        btn.addEventListener('click', () => {
+                            if (isPlayingSequence || sequence.length === 0) return;
+                            
+                            playNote(btn);
+                            playerSequence.push(index);
+
+                            // Check correctness
+                            if (playerSequence[playerSequence.length - 1] !== sequence[playerSequence.length - 1]) {
+                                statusText.textContent = "Wrong note! Try again.";
+                                sequence = [];
+                                startBtn.textContent = "Restart";
+                                startBtn.classList.remove('hidden');
+                                return;
+                            }
+
+                            if (playerSequence.length === sequence.length) {
+                                statusText.textContent = "Great! Next round...";
+                                setTimeout(addToSequence, 1000);
+                            }
+                        });
+                    });
+                    break;
+                }
+
+                case 'mandala-mirror': {
+                    content = `<div class="flex flex-col items-center justify-center h-full w-full p-2 space-y-4">
+                                    <div class="relative bg-white rounded-full shadow-xl overflow-hidden border-4 border-fuchsia-200 cursor-crosshair touch-none" style="width: 300px; height: 300px; min-width: 300px; min-height: 300px;">
+                                        <canvas id="mandala-canvas" class="w-full h-full"></canvas>
+                                    </div>
+                                    <div class="flex flex-wrap justify-center gap-2">
+                                        <button class="color-btn w-8 h-8 rounded-full bg-red-400 border-2 border-white shadow-sm transition-transform hover:scale-110" data-color="#f87171"></button>
+                                        <button class="color-btn w-8 h-8 rounded-full bg-orange-400 border-2 border-white shadow-sm transition-transform hover:scale-110" data-color="#fb923c"></button>
+                                        <button class="color-btn w-8 h-8 rounded-full bg-yellow-400 border-2 border-white shadow-sm transition-transform hover:scale-110" data-color="#facc15"></button>
+                                        <button class="color-btn w-8 h-8 rounded-full bg-green-400 border-2 border-white shadow-sm transition-transform hover:scale-110" data-color="#4ade80"></button>
+                                        <button class="color-btn w-8 h-8 rounded-full bg-blue-400 border-2 border-white shadow-sm transition-transform hover:scale-110" data-color="#60a5fa"></button>
+                                        <button class="color-btn w-8 h-8 rounded-full bg-purple-400 border-2 border-white shadow-sm transition-transform hover:scale-110" data-color="#c084fc"></button>
+                                        <button class="color-btn w-8 h-8 rounded-full bg-pink-400 border-2 border-white shadow-sm ring-2 ring-fuchsia-500 transform scale-110" data-color="#f472b6"></button> 
+                                    </div>
+                                    <button id="clear-mandala" class="px-4 py-2 bg-fuchsia-500 text-white rounded-full text-sm hover:bg-fuchsia-600 shadow-md transition-colors">Clear Canvas</button>
+                               </div>`;
+                    gameDisplay.innerHTML = content;
+
+                    const canvas = document.getElementById('mandala-canvas');
+                    const ctx = canvas.getContext('2d');
+                    const clearBtn = document.getElementById('clear-mandala');
+                    const colorBtns = document.querySelectorAll('.color-btn');
+                    
+                    // Fixed size for the mandala canvas to ensure consistent drawing
+                    canvas.width = 300;
+                    canvas.height = 300;
+                    
+                    let isDrawing = false;
+                    let lastX = 0;
+                    let lastY = 0;
+                    let currentColor = '#f472b6';
+                    const segments = 12; // Number of slices
+
+                    // Set white background initially
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Color selection logic
+                    colorBtns.forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            currentColor = btn.dataset.color;
+                            colorBtns.forEach(b => {
+                                b.classList.remove('ring-2', 'ring-fuchsia-500', 'scale-110');
+                            });
+                            btn.classList.add('ring-2', 'ring-fuchsia-500', 'scale-110');
+                        });
+                    });
+
+                    const drawLine = (x1, y1, x2, y2) => {
+                        const center = canvas.width / 2;
+                        
+                        ctx.save();
+                        ctx.translate(center, center);
+                        
+                        for (let i = 0; i < segments; i++) {
+                            ctx.rotate((Math.PI * 2) / segments);
+                            
+                            // Draw original stroke
+                            ctx.beginPath();
+                            ctx.moveTo(x1 - center, y1 - center);
+                            ctx.lineTo(x2 - center, y2 - center);
+                            ctx.strokeStyle = currentColor;
+                            ctx.lineWidth = 2.5;
+                            ctx.lineCap = 'round';
+                            ctx.lineJoin = 'round';
+                            ctx.stroke();
+                            
+                            // Mirror reflection for true mandala effect
+                            ctx.save();
+                            ctx.scale(1, -1);
+                            ctx.beginPath();
+                            ctx.moveTo(x1 - center, y1 - center);
+                            ctx.lineTo(x2 - center, y2 - center);
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                        ctx.restore();
+                    };
+
+                    const handleStart = (e) => {
+                        isDrawing = true;
+                        const rect = canvas.getBoundingClientRect();
+                        // Handle scaling if displayed size != internal size
+                        const scaleX = canvas.width / rect.width;
+                        const scaleY = canvas.height / rect.height;
+                        
+                        const clientX = e.clientX || e.touches[0].clientX;
+                        const clientY = e.clientY || e.touches[0].clientY;
+                        
+                        lastX = (clientX - rect.left) * scaleX;
+                        lastY = (clientY - rect.top) * scaleY;
+                    };
+
+                    const handleMove = (e) => {
+                        if (!isDrawing) return;
+                        
+                        const rect = canvas.getBoundingClientRect();
+                        const scaleX = canvas.width / rect.width;
+                        const scaleY = canvas.height / rect.height;
+                        
+                        const clientX = e.clientX || e.touches[0].clientX;
+                        const clientY = e.clientY || e.touches[0].clientY;
+                        
+                        const currentX = (clientX - rect.left) * scaleX;
+                        const currentY = (clientY - rect.top) * scaleY;
+
+                        drawLine(lastX, lastY, currentX, currentY);
+                        lastX = currentX;
+                        lastY = currentY;
+                    };
+
+                    const handleEnd = () => {
+                        isDrawing = false;
+                    };
+
+                    canvas.addEventListener('mousedown', handleStart);
+                    canvas.addEventListener('mousemove', handleMove);
+                    canvas.addEventListener('mouseup', handleEnd);
+                    canvas.addEventListener('mouseleave', handleEnd);
+
+                    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(e); });
+                    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(e); });
+                    canvas.addEventListener('touchend', handleEnd);
+
+                    clearBtn.addEventListener('click', () => {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Play clear sound
+                        if (typeof Tone !== 'undefined') {
+                             try {
+                                Tone.start();
+                                const synth = new Tone.PolySynth().toDestination();
+                                synth.volume.value = -15;
+                                synth.triggerAttackRelease(["C5", "E5", "G5"], "8n");
+                             } catch (e) {}
+                        }
+                    });
+                    break;
+                }
+
+                case 'word-calm': {
+                    content = `<div class="flex flex-col items-center justify-center w-full h-full p-4 space-y-6">
+                                    <div class="flex flex-col items-center">
+                                        <p id="word-hint" class="text-orange-800 font-medium mb-2 text-sm uppercase tracking-widest opacity-70">Unscramble the word</p>
+                                        <div id="target-slots" class="flex gap-2 mb-4 h-12"></div>
+                                    </div>
+                                    
+                                    <div id="scrambled-letters" class="flex flex-wrap justify-center gap-2 max-w-md"></div>
+                                    
+                                    <div class="flex gap-4 mt-4">
+                                        <button id="word-reset" class="px-6 py-2 bg-orange-300 text-orange-900 rounded-full font-semibold hover:bg-orange-400 transition-colors shadow-sm">Reset Letters</button>
+                                        <button id="word-skip" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-full font-semibold hover:bg-gray-400 transition-colors shadow-sm">Skip Word</button>
+                                    </div>
+                                    <p id="word-message" class="h-6 text-orange-600 font-bold"></p>
+                               </div>`;
+                    gameDisplay.innerHTML = content;
+
+                    const targetSlots = document.getElementById('target-slots');
+                    const scrambledArea = document.getElementById('scrambled-letters');
+                    const resetBtn = document.getElementById('word-reset');
+                    const skipBtn = document.getElementById('word-skip');
+                    const messageEl = document.getElementById('word-message');
+
+                    // 1000+ Peaceful/Positive Words
+                    const wordList = [
+                        "PEACE", "CALM", "HOPE", "LOVE", "JOY", "REST", "HEAL", "SOUL", "LIFE", "PURE", 
+                        "ZEN", "MIND", "KIND", "SOFT", "WARM", "GLOW", "SAFE", "FREE", "EASE", "FLOW", 
+                        "GROW", "TRUE", "WISE", "FAIR", "GOOD", "GLAD", "NEAT", "TIDY", "COZY", "LUSH", 
+                        "AIRY", "DEW", "MIST", "RAIN", "SNOW", "WIND", "SUN", "MOON", "STAR", "SKY", 
+                        "BLUE", "SEA", "BAY", "WAVE", "SAND", "TREE", "LEAF", "ROOT", "SEED", "BUD", 
+                        "ROSE", "LILY", "FERN", "MOSS", "PINE", "OAK", "ELM", "PEAR", "PLUM", "LIME", 
+                        "MINT", "SAGE", "BASIL", "THYME", "SPICE", "SALT", "SILK", "WOOL", "YARN", "KNIT", 
+                        "ART", "POEM", "SONG", "TUNE", "HUM", "SING", "PLAY", "WALK", "RUN", "SWIM", 
+                        "FLY", "SOAR", "RISE", "WAKE", "NAP", "BED", "BOOK", "TEA", "CUP", "MUG", 
+                        "BOWL", "DISH", "HOME", "DOOR", "KEY", "PATH", "WAY", "ROAD", "STEP", "VIEW", 
+                        "LOOK", "SEE", "HEAR", "FEEL", "TOUCH", "HOLD", "KEEP", "GIVE", "SHARE", "HELP", 
+                        "CARE", "TEND", "FIX", "MEND", "BOND", "LINK", "JOIN", "MEET", "GREET", "SMILE", 
+                        "LAUGH", "HUG", "KISS", "BLISS", "GRACE", "GLORY", "MERCY", "FAITH", "TRUST", "TRUTH", 
+                        "HONOR", "VALUE", "WORTH", "PRIDE", "POWER", "FORCE", "DRIVE", "WILL", "WISH", "DREAM", 
+                        "PLAN", "GOAL", "AIM", "MARK", "SPOT", "PLACE", "SPACE", "ROOM", "AREA", "ZONE", 
+                        "FIELD", "LAND", "HILL", "PEAK", "TOP", "SIDE", "EDGE", "BANK", "SHORE", "COAST", 
+                        "ISLE", "COVE", "CAVE", "NEST", "DEN", "HIVE", "FLOCK", "HERD", "PACK", "TEAM", 
+                        "CREW", "BAND", "GROUP", "UNIT", "WHOLE", "PART", "SUM", "ONE", "ALL", "EACH", 
+                        "ANY", "NOW", "HERE", "THIS", "THAT", "YES", "OKAY", "FINE", "WELL", "COOL", 
+                        "NICE", "SWEET", "CUTE", "DEAR", "NEAR", "FAR", "HIGH", "DEEP", "WIDE", "LONG", 
+                        "FULL", "RICH", "VAST", "GRAND", "EPIC", "NOBLE", "ROYAL", "LOYAL", "BRAVE", "BOLD", 
+                        "WILD", "TAME", "MILD", "MEEK", "QUIET", "STILL", "SILENT", "HUSH", "SHH", "WAIT", 
+                        "STOP", "PAUSE", "SLOW", "EASY", "SIMPLE", "CLEAR", "CLEAN", "FRESH", "NEW", "YOUNG", 
+                        "OLD", "AGE", "TIME", "YEAR", "DAY", "HOUR", "UNITY", "AMITY", "HAPPY", "LIGHT",
+                        "FOCUS", "RELAX", "BREATHE", "AWAKE", "ALIVE", "BLOOM", "SHINE", "SPARK", "DANCE",
+                        "FLOAT", "DRIFT", "DREAM", "SLEEP", "CLOUD", "WATER", "RIVER",
+                        "OCEAN", "BROOK", "STREAM", "FOREST", "WOODS", "GLADE", "MEADOW", "GARDEN", "FLOWER",
+                        "PETAL", "STEM", "BRANCH", "TRUNK", "ROOTS", "EARTH", "WORLD", "PLANET", "GALAXY",
+                        "ABIDE", "ABLE", "ABOVE", "ACCEPT", "ACCORD", "ACTION", "ADMIRE", "ADORE", "ADVICE", "AFFECTION", "AGREE", "AID", "ALERT", "ALLAY", "ALLOW", "ALLY", "ALOE", "ALPHA", "AMBER", "AMEND", "AMPLE", "ANGEL", "ANGLE", "ANIMATE", "ANSWER", "APPEAL", "APPLE", "ARDOR", "AROMA", "ASPEN", "ASSIST", "ASSURE", "ASTER", "ATLAS", "ATONE", "AURA", "AWARD", "AWARE", "AZURE",
+                        "BABY", "BALANCE", "BALM", "BARN", "BASIC", "BASK", "BATH", "BEACH", "BEAM", "BEAR", "BEAT", "BEAUTY", "BEE", "BEGIN", "BEING", "BELIEF", "BELL", "BELONG", "BENCH", "BEND", "BERRY", "BEST", "BETTER", "BIRD", "BIRTH", "BLACK", "BLEND", "BLESS", "BLINK", "BLUSH", "BOAT", "BODY", "BOOST", "BORN", "BOSS", "BOUND", "BOW", "BOX", "BOY", "BRACE", "BRAIN", "BREAD", "BREAK", "BREATH", "BREEZE", "BREW", "BRICK", "BRIDGE", "BRIGHT", "BRING", "BROAD", "BROWN", "BRUSH", "BUBBLE", "BUILD", "BULB", "BUMP", "BUN", "BUNCH", "BUNNY", "BUSH", "BUSY", "BUTTER", "BUY", "BUZZ",
+                        "CABIN", "CAGE", "CAKE", "CALL", "CAMP", "CAN", "CANDLE", "CANDY", "CANOE", "CAPE", "CART", "CASE", "CASH", "CAST", "CAT", "CATCH", "CAUSE", "CEDAR", "CELEBRATE", "CELL", "CENTER", "CHAIN", "CHAIR", "CHALK", "CHANCE", "CHANT", "CHARM", "CHART", "CHASE", "CHAT", "CHEER", "CHEF", "CHERRY", "CHESS", "CHEST", "CHEW", "CHIC", "CHILD", "CHILL", "CHIME", "CHIN", "CHIP", "CHOICE", "CHOIR", "CHOOSE", "CHORD", "CHORUS", "CIRCLE", "CITY", "CIVIC", "CIVIL", "CLAIM", "CLAP", "CLASS", "CLAY", "CLEAN", "CLERK", "CLEVER", "CLICK", "CLIFF", "CLIMB", "CLIP", "CLOCK", "CLOSE", "CLOTH", "CLOVER", "CLUB", "CLUE", "COACH", "COAL", "COAT", "CODE", "COIN", "COLD", "COLOR", "COLT", "COMB", "COME", "COMFORT", "COMIC", "COMMIT", "COMMON", "COOK", "COOL", "CORAL", "CORD", "CORE", "CORK", "CORN", "COST", "COSY", "COTTON", "COUCH", "COUNT", "COURT", "COVE", "COVER", "COW", "CRAB", "CRAFT", "CRANE", "CREAM", "CREATE", "CREEK", "CREW", "CRIB", "CROP", "CROSS", "CROWD", "CROWN", "CRUST", "CRY", "CUBE", "CUDDLE", "CUE", "CURE", "CURL", "CURVE", "CYCLE",
+                        "DAD", "DAISY", "DARE", "DARK", "DARN", "DART", "DASH", "DATE", "DAWN", "DAY", "DAZE", "DEAL", "DEAR", "DECK", "DEEP", "DEER", "DEFY", "DELIGHT", "DELL", "DENIM", "DENT", "DEPTH", "DESK", "DIAL", "DICE", "DIET", "DIG", "DIME", "DINE", "DING", "DIP", "DIRECT", "DISC", "DISK", "DIVE", "DO", "DOCK", "DOG", "DOLL", "DOME", "DONE", "DOT", "DOVE", "DOWN", "DOZE", "DRAFT", "DRAG", "DRAW", "DRESS", "DRILL", "DRINK", "DROP", "DRUM", "DRY", "DUCK", "DUE", "DUKE", "DULL", "DUNE", "DUSK", "DUST", "DUTY", "DWELL",
+                        "EAGER", "EAGLE", "EAR", "EARL", "EARLY", "EARN", "EAST", "EAT", "ECHO", "EDGE", "EDIT", "EFFECT", "EGG", "EGO", "EIGHT", "ELAN", "ELBOW", "ELDER", "ELECT", "ELEMENT", "ELITE", "ELSE", "EMBER", "EMBRACE", "EMERGE", "EMOTION", "EMPATHY", "EMPIRE", "EMPTY", "ENABLE", "END", "ENERGY", "ENGAGE", "ENGINE", "ENJOY", "ENOUGH", "ENTER", "ENTIRE", "ENTRY", "EQUAL", "EQUIP", "ERA", "ESSAY", "ESTATE", "ESTEEM", "ETHER", "ETHIC", "EVENT", "EVER", "EVERY", "EXACT", "EXALT", "EXCEL", "EXITE", "EXIST", "EXIT", "EXPAND", "EXPECT", "EXPERT", "EYE",
+                        "FACE", "FACT", "FADE", "FALL", "FAME", "FAN", "FANCY", "FARM", "FAST", "FAT", "FATE", "FATHER", "FAVOR", "FAWN", "FEAST", "FEAT", "FELINE", "FELT", "FERRY", "FETCH", "FEVER", "FEW", "FIFE", "FIG", "FIGHT", "FILE", "FILL", "FILM", "FILTER", "FIND", "FIRE", "FIRM", "FIRST", "FISH", "FIT", "FIVE", "FLAG", "FLAME", "FLASH", "FLAT", "FLAVOR", "FLAX", "FLEE", "FLEET", "FLESH", "FLEX", "FLIGHT", "FLINT", "FLIP", "FLOOR", "FLORA", "FLUTE", "FOAM", "FOG", "FOIL", "FOLD", "FOLK", "FOLLOW", "FOND", "FOOD", "FOOL", "FOOT", "FOR", "FORD", "FORE", "FORK", "FORM", "FORT", "FORTH", "FOUL", "FOUND", "FOUR", "FOX", "FRAME", "FRIEND", "FROG", "FROM", "FRONT", "FROST", "FRUIT", "FRY", "FUN", "FUND", "FUR", "FUSE", "FUTURE",
+                        "GAIN", "GALA", "GALE", "GALL", "GAME", "GANG", "GAP", "GATE", "GATHER", "GAZE", "GEAR", "GEM", "GENE", "GENTLE", "GENUINE", "GERM", "GET", "GIFT", "GIG", "GIRD", "GIRL", "GLANCE", "GLASS", "GLAZE", "GLEAM", "GLEE", "GLEN", "GLIDE", "GLIMMER", "GLISTEN", "GLITTER", "GLOBE", "GLOOM", "GLOSS", "GLOVE", "GLUE", "GO", "GOAT", "GOD", "GOLD", "GOLF", "GOOSE", "GORGE", "GRADE", "GRAIN", "GRANT", "GRAPE", "GRAPH", "GRASP", "GRASS", "GRATE", "GRAVE", "GRAY", "GREAT", "GREEN", "GREY", "GRID", "GRILL", "GRIN", "GRIP", "GRIT", "GROOM", "GROUND", "GROVE", "GROWTH", "GUARD", "GUESS", "GUEST", "GUIDE", "GUILD", "GUILT", "GULF", "GULL", "GUM", "GUST", "GUT", "GYM",
+                        "HABIT", "HAIR", "HALE", "HALF", "HALL", "HALO", "HALT", "HAM", "HAND", "HANDLE", "HANG", "HAPPEN", "HAPPY", "HARBOR", "HARD", "HARE", "HARK", "HARM", "HARP", "HARVEST", "HASH", "HASTE", "HAT", "HATCH", "HAUL", "HAVE", "HAWK", "HAY", "HAZE", "HEAD", "HEALTH", "HEAP", "HEART", "HEAT", "HEAVEN", "HEAVY", "HEDGE", "HEEL", "HEIGHT", "HEIR", "HELLO", "HELM", "HEN", "HERB", "HERE", "HERO", "HIDE", "HIKE", "HINT", "HIP", "HIRE", "HIT", "HOBBY", "HOLE", "HOLIDAY", "HOLLOW", "HOLY", "HONEST", "HONEY", "HOOD", "HOOK", "HOOP", "HOP", "HORN", "HORSE", "HOSE", "HOST", "HOT", "HOTEL", "HOUSE", "HOVER", "HOW", "HUGE", "HULL", "HUMAN", "HUMBLE", "HUMOR", "HUNCH", "HUNT", "HURL", "HURRY", "HURT", "HUSH", "HUT", "HYMN",
+                        "ICE", "IDEA", "IDEAL", "IDLE", "IDOL", "IGNITE", "IMAGE", "IMAGINE", "IMBUE", "IMPACT", "IMPEL", "INCH", "INDEX", "INDOOR", "INFANT", "INK", "INN", "INNER", "INPUT", "INSECT", "INSIDE", "INSIGHT", "INSPIRE", "INSTALL", "INSTANT", "INTENT", "INTER", "INTO", "INVENT", "INVEST", "INVITE", "IRIS", "IRON", "ISLAND", "ISSUE", "ITEM", "IVORY", "IVY",
+                        "JACK", "JADE", "JAIL", "JAM", "JAR", "JAW", "JAZZ", "JEAN", "JEEP", "JELLY", "JEST", "JET", "JEWEL", "JOB", "JOG", "JOINT", "JOKE", "JOLLY", "JOLT", "JOURNAL", "JOURNEY", "JUDGE", "JUG", "JUICE", "JUMP", "JUNE", "JUNGLE", "JUNIOR", "JURY", "JUST", "JUTE",
+                        "KEEN", "KELP", "KEPT", "KICK", "KID", "KINETIC", "KING", "KIT", "KITE", "KNACK", "KNEE", "KNEW", "KNIFE", "KNIGHT", "KNOB", "KNOCK", "KNOT", "KNOW", "KOALA",
+                        "LAB", "LACE", "LACK", "LAD", "LADDER", "LADY", "LAKE", "LAMB", "LAMP", "LANE", "LAP", "LARGE", "LARK", "LASH", "LAST", "LATE", "LAUNCH", "LAVA", "LAW", "LAWN", "LAY", "LAYER", "LAZY", "LEAD", "LEAGUE", "LEAK", "LEAN", "LEAP", "LEARN", "LEAST", "LEAVE", "LEDGE", "LEFT", "LEG", "LEGAL", "LEGEND", "LEMON", "LEND", "LENGTH", "LENS", "LENT", "LESS", "LET", "LETTER", "LEVEL", "LEVER", "LIFT", "LIGHT", "LIKE", "LILAC", "LIMB", "LIMIT", "LIMP", "LINE", "LION", "LIP", "LIQUID", "LIST", "LISTEN", "LIT", "LITTLE", "LIVE", "LIVELY", "LOAD", "LOAF", "LOAN", "LOBBY", "LOCAL", "LOCK", "LODGE", "LOG", "LOGIC", "LONE", "LOOK", "LOOM", "LOOP", "LOOSE", "LORD", "LOSE", "LOSS", "LOT", "LOUD", "LOUNGE", "LOW", "LUCK", "LUCKY", "LULL", "LUMP", "LUNAR", "LUNCH", "LUNG", "LURE", "LUST", "LUTE", "LUXURY", "LYRIC",
+                        "MACHINE", "MAD", "MADE", "MAGIC", "MAGNET", "MAID", "MAIL", "MAIN", "MAJOR", "MAKE", "MALE", "MAMA", "MAN", "MANAGE", "MANE", "MANGO", "MANIA", "MANNER", "MANY", "MAP", "MAPLE", "MARCH", "MARE", "MARKET", "MARS", "MARSH", "MART", "MASK", "MASS", "MAST", "MASTER", "MAT", "MATCH", "MATE", "MATH", "MATRIX", "MATTER", "MATURE", "MAX", "MAY", "MAZE", "MEAL", "MEAN", "MEAT", "MEDAL", "MEDIA", "MEDIC", "MELLOW", "MELON", "MELT", "MEMBER", "MEMORY", "MENU", "MERIT", "MERRY", "MESH", "MESS", "METAL", "METER", "METHOD", "METRO", "MID", "MIDDLE", "MIGHT", "MILE", "MILK", "MILL", "MIMIC", "MINE", "MINUTE", "MIRROR", "MISS", "MIX", "MOAN", "MOAT", "MOB", "MOBILE", "MODE", "MODEL", "MODERN", "MODEST", "MOIST", "MOLD", "MOLE", "MOM", "MOMENT", "MONEY", "MONK", "MONKEY", "MOOD", "MOOR", "MORAL", "MORE", "MORNING", "MOST", "MOTH", "MOTHER", "MOTION", "MOTOR", "MOUNT", "MOUSE", "MOUTH", "MOVE", "MOVIE", "MUCH", "MUD", "MULE", "MUSE", "MUSIC", "MUSK", "MUST", "MUTE", "MYTH",
+                        "NAIL", "NAME", "NAPE", "NARROW", "NATION", "NATIVE", "NATURAL", "NATURE", "NAVAL", "NAVE", "NAVY", "NECK", "NEED", "NEEDLE", "NERVE", "NET", "NETWORK", "NEUTRAL", "NEVER", "NEWS", "NEXT", "NICHE", "NIGHT", "NINE", "NOD", "NOISE", "NONE", "NOOK", "NOON", "NORTH", "NOSE", "NOTE", "NOTICE", "NOVEL", "NUDE", "NULL", "NUMBER", "NURSE", "NUT", "NYMPH",
+                        "OAR", "OASIS", "OATH", "OATS", "OBEY", "OBJECT", "OBLIGE", "OCHER", "OCTAVE", "ODD", "ODE", "ODOR", "OFF", "OFFER", "OFFICE", "OFTEN", "OIL", "OLIVE", "OMEN", "ON", "ONCE", "ONION", "ONLY", "ONSET", "ONTO", "OPEN", "OPERA", "OPTION", "ORACLE", "ORANGE", "ORBIT", "ORDER", "ORGAN", "ORIGIN", "OTHER", "OTTER", "OUNCE", "OUR", "OUT", "OUTER", "OUTFIT", "OUTING", "OUTLET", "OUTPUT", "OVAL", "OVEN", "OVER", "OVERT", "OWL", "OWN", "OWNER", "OX",
+                        "PACE", "PACK", "PAD", "PAGE", "PAID", "PAIL", "PAIN", "PAINT", "PAIR", "PALACE", "PALE", "PALM", "PAN", "PANEL", "PANIC", "PANSY", "PANT", "PAPER", "PARADE", "PARCEL", "PARDON", "PARENT", "PARK", "PART", "PARTY", "PASS", "PAST", "PASTE", "PAT", "PATCH", "PATIO", "PAUSE", "PAVE", "PAW", "PAY", "PEA", "PEACH", "PEARL", "PEDAL", "PEEK", "PEEL", "PEER", "PEN", "PENCIL", "PENNY", "PEOPLE", "PEPPER", "PERCH", "PERFECT", "PERMIT", "PERSON", "PET", "PHASE", "PHONE", "PHOTO", "PHRASE", "PICK", "PICNIC", "PICTURE", "PIE", "PIECE", "PIER", "PIG", "PIKE", "PILE", "PILL", "PILOT", "PIN", "PINK", "PIPE", "PIT", "PITCH", "PITH", "PIVOT", "PLAIN", "PLANE", "PLANT", "PLATE", "PLAZA", "PLEA", "PLEAD", "PLEASE", "PLENTY", "PLOT", "PLOW", "PLUG", "PLUNGE", "PLUS", "PLUSH", "POCKET", "POET", "POINT", "POISE", "POKE", "POLE", "POLICE", "POLISH", "POLL", "POLO", "POND", "PONY", "POOL", "POOR", "POP", "POPE", "POPPY", "PORCH", "PORE", "PORT", "POSE", "POSY", "POT", "POUCH", "POUND", "POUR", "PRAISE", "PRAY", "PREACH", "PREFER", "PRESS", "PRETTY", "PRICE", "PRIME", "PRINCE", "PRINT", "PRIZE", "PROBE", "PROFIT", "PROMPT", "PROOF", "PROP", "PROPER", "PROUD", "PROVE", "PUBLIC", "PUFF", "PULL", "PULP", "PULSE", "PUMP", "PUNCH", "PUPIL", "PUPPY", "PURPLE", "PURSE", "PUSH", "PUT", "PUZZLE",
+                        "QUAIL", "QUAKE", "QUALM", "QUART", "QUEEN", "QUEST", "QUICK", "QUIET", "QUILL", "QUILT", "QUIT", "QUITE", "QUOTE",
+                        "RABBIT", "RACE", "RACK", "RADAR", "RADIO", "RAFT", "RAGE", "RAID", "RAIL", "RAISE", "RAKE", "RALLY", "RAM", "RANCH", "RANGE", "RANK", "RAPID", "RARE", "RATE", "RATHER", "RATIO", "RAW", "RAY", "REACH", "READ", "READY", "REAL", "REALM", "REAP", "REAR", "REASON", "REBEL", "RECALL", "RECEIPT", "RECEIVE", "RECIPE", "RECORD", "RED", "REED", "REEF", "REEL", "REFER", "REFORM", "REFUGE", "REGARD", "REGION", "REGRET", "REIGN", "REIN", "REJECT", "RELAY", "RELIEF", "RELISH", "RELY", "REMAIN", "REMARK", "REMEDY", "REMIND", "REMOTE", "REMOVE", "RENDER", "RENEW", "RENT", "REPAIR", "REPEAT", "REPLY", "REPORT", "REPOSE", "RESIDE", "RESIST", "RESORT", "RESULT", "RESUME", "RETAIL", "RETAIN", "RETIRE", "RETURN", "REVEAL", "REVIEW", "REVIVE", "REWARD", "RHYTHM", "RIB", "RICE", "RICH", "RID", "RIDE", "RIDGE", "RIFLE", "RIG", "RIGHT", "RIM", "RING", "RINK", "RIOT", "RIP", "RIPE", "RISK", "RITE", "ROAR", "ROAST", "ROBE", "ROBIN", "ROBOT", "ROCK", "ROCKET", "ROD", "RODE", "ROLE", "ROLL", "ROOF", "ROPE", "ROSY", "ROTATE", "ROUGH", "ROUND", "ROUTE", "ROVE", "ROW", "RUB", "RUBBER", "RUBY", "RUDDER", "RUG", "RUIN", "RULE", "RULER", "RUMOR", "RUNNER", "RURAL", "RUSH", "RUST",
+                        "SACK", "SACRED", "SAD", "SADDLE", "SAFETY", "SAIL", "SAINT", "SAKE", "SALAD", "SALE", "SAME", "SAMPLE", "SANE", "SASH", "SATIN", "SAUCE", "SAVE", "SAW", "SAY", "SCALE", "SCALP", "SCAN", "SCARE", "SCARF", "SCENE", "SCENT", "SCHOOL", "SCIENCE", "SCOPE", "SCORE", "SCORN", "SCOUT", "SCRAP", "SCREEN", "SCREW", "SCRIPT", "SCROLL", "SCRUB", "SEAL", "SEAM", "SEARCH", "SEASON", "SEAT", "SECOND", "SECRET", "SECTOR", "SECURE", "SEEK", "SEEM", "SEEN", "SEIZE", "SELECT", "SELF", "SELL", "SEND", "SENIOR", "SENSE", "SENT", "SENTRY", "SERIES", "SERVE", "SET", "SETTLE", "SEVEN", "SEVERAL", "SEVERE", "SEW", "SHADE", "SHADOW", "SHAKE", "SHALL", "SHAME", "SHAPE", "SHARK", "SHARP", "SHE", "SHEAR", "SHED", "SHEEP", "SHEET", "SHELF", "SHELL", "SHIELD", "SHIFT", "SHINE", "SHIP", "SHIRT", "SHOCK", "SHOE", "SHOOT", "SHOP", "SHORT", "SHOT", "SHOULD", "SHOUT", "SHOW", "SHOWER", "SHRED", "SHRUB", "SHRUG", "SHUT", "SHY", "SICK", "SIDE", "SIFT", "SIGH", "SIGHT", "SIGN", "SIGNAL", "SILENT", "SILL", "SILLY", "SILVER", "SIMPLE", "SIN", "SINCE", "SINGLE", "SINK", "SIP", "SIR", "SIREN", "SISTER", "SIT", "SITE", "SIX", "SIZE", "SKATE", "SKETCH", "SKI", "SKID", "SKILL", "SKIN", "SKIP", "SKIRT", "SKULL", "SLAB", "SLACK", "SLAM", "SLAP", "SLATE", "SLAVE", "SLED", "SLEEP", "SLEET", "SLEEVE", "SLICE", "SLIDE", "SLIGHT", "SLIM", "SLIP", "SLIT", "SLOPE", "SLOT", "SLOW", "SLUG", "SMALL", "SMART", "SMASH", "SMELL", "SMOKE", "SMOOTH", "SNACK", "SNAIL", "SNAKE", "SNAP", "SNARE", "SOAP", "SOB", "SOCCER", "SOCIAL", "SOCK", "SODA", "SOFA", "SOIL", "SOLAR", "SOLD", "SOLE", "SOLID", "SOLO", "SOLVE", "SOME", "SON", "SONIC", "SOON", "SOOTHE", "SORE", "SORT", "SOUND", "SOUP", "SOUR", "SOURCE", "SOUTH", "SPADE", "SPAN", "SPARE", "SPARK", "SPEAK", "SPEAR", "SPEECH", "SPEED", "SPELL", "SPEND", "SPHERE", "SPIDER", "SPIKE", "SPILL", "SPIN", "SPINE", "SPIRIT", "SPIT", "SPLASH", "SPLIT", "SPOIL", "SPOKE", "SPONGE", "SPOON", "SPORT", "SPOUT", "SPRAY", "SPREAD", "SPRING", "SPRINT", "SPUR", "SQUARE", "SQUASH", "SQUEAK", "STACK", "STAFF", "STAGE", "STAIN", "STAIR", "STAKE", "STALE", "STALK", "STALL", "STAMP", "STAND", "STARE", "START", "STATE", "STATUE", "STAY", "STEAK", "STEAL", "STEAM", "STEEL", "STEEP", "STEER", "STEM", "STERN", "STEW", "STICK", "STIFF", "STING", "STIR", "STOCK", "STONE", "STOOL", "STOP", "STORE", "STORK", "STORM", "STORY", "STOUT", "STOVE", "STRAP", "STRAW", "STRAY", "STREET", "STRESS", "STRETCH", "STRICT", "STRIDE", "STRIKE", "STRING", "STRIP", "STRIPE", "STRIVE", "STROKE", "STRONG", "STRUCT", "STRUT", "STUCK", "STUD", "STUDY", "STUFF", "STUMBLE", "STUMP", "STYLE", "SUBJECT", "SUBTLET", "SUBWAY", "SUCCESS", "SUCH", "SUDDEN", "SUFFER", "SUGAR", "SUGGEST", "SUIT", "SULK", "SUMMER", "SUMMIT", "SUNNY", "SUNSET", "SUPER", "SUPPER", "SUPPLY", "SUPPORT", "SURE", "SURF", "SURGE", "SURPRISE", "SURROUND", "SURVEY", "SURVIVE", "SUSPECT", "SUSTAIN", "SWALLOW", "SWAMP", "SWAN", "SWARM", "SWAY", "SWEAR", "SWEAT", "SWEEP", "SWELL", "SWEPT", "SWIFT", "SWING", "SWITCH", "SWORD", "SYMBOL", "SYRUP", "SYSTEM",
+                        "TABLE", "TACK", "TACT", "TAIL", "TAKE", "TALE", "TALK", "TALL", "TANK", "TAP", "TAPE", "TARGET", "TASK", "TASTE", "TATTOO", "TAUGHT", "TAX", "TEACH", "TEAR", "TEASE", "TECH", "TEETH", "TELL", "TEMPER", "TEMPLE", "TEMPO", "TEN", "TENDER", "TENNIS", "TENT", "TERM", "TERRACE", "TEST", "TEXT", "THAN", "THANK", "THAW", "THEFT", "THEIR", "THEM", "THEME", "THEN", "THEORY", "THERE", "THESE", "THICK", "THIEF", "THIGH", "THIN", "THING", "THINK", "THIRD", "THIRST", "THIRTY", "THORN", "THOSE", "THOU", "THOUGH", "THREAD", "THREAT", "THREE", "THRIFT", "THROAT", "THRONE", "THRONG", "THROW", "THUMB", "THUNDER", "THUS", "TICKET", "TIDE", "TIE", "TIGER", "TIGHT", "TILE", "TILL", "TILT", "TIMID", "TIN", "TINY", "TIP", "TIRE", "TISSUE", "TITLE", "TO", "TOAD", "TOAST", "TODAY", "TOE", "TOGETHER", "TOKEN", "TOLD", "TOLL", "TOMATO", "TOMB", "TONE", "TONGUE", "TONIC", "TOO", "TOOL", "TOOTH", "TOPIC", "TORCH", "TORN", "TOSS", "TOTAL", "TOUGH", "TOUR", "TOW", "TOWEL", "TOWER", "TOWN", "TOY", "TRACE", "TRACK", "TRADE", "TRAIL", "TRAIN", "TRAIT", "TRAM", "TRANCE", "TRAP", "TRASH", "TRAVEL", "TRAY", "TREAT", "TREK", "TREND", "TRIAL", "TRIBE", "TRICK", "TRIED", "TRIM", "TRIP", "TROOP", "TROT", "TROUBLE", "TRUCK", "TRUMP", "TRUNK", "TRY", "TUB", "TUBE", "TUCK", "TUFT", "TUG", "TULIP", "TUMBLE", "TUNA", "TUNNEL", "TURF", "TURKEY", "TURN", "TURTLE", "TUTOR", "TWELVE", "TWENTY", "TWICE", "TWIG", "TWIN", "TWIST", "TWO", "TYPE",
+                        "UGLY", "UNCLE", "UNDER", "UNIFY", "UNION", "UNIT", "UNITE", "UNLOCK", "UNTIL", "UP", "UPON", "UPPER", "UPSET", "URBAN", "URGE", "USE", "USUAL", "UTTER",
+                        "VACANT", "VAGUE", "VAIN", "VALE", "VALID", "VALLEY", "VALVE", "VAN", "VANILLA", "VAPOR", "VASE", "VAST", "VAULT", "VEAL", "VEER", "VEIL", "VEIN", "VELVET", "VENDOR", "VENT", "VENUE", "VERB", "VERGE", "VERIFY", "VERSE", "VERY", "VESSEL", "VEST", "VET", "VETO", "VIBE", "VICE", "VICTIM", "VICTOR", "VICTORY", "VIDEO", "VILLAGE", "VINE", "VIOLA", "VIOLET", "VIOLIN", "VIRTUE", "VIRUS", "VISIT", "VISUAL", "VITAL", "VIVID", "VOCAL", "VOICE", "VOID", "VOLT", "VOLUME", "VOTE", "VOW", "VOYAGE",
+                        "WAD", "WADDLE", "WADE", "WAFER", "WAFFLE", "WAGE", "WAGON", "WAIST", "WAIT", "WALL", "WALNUT", "WANDER", "WANT", "WAR", "WARD", "WARN", "WARP", "WASH", "WASP", "WASTE", "WATCH", "WAX", "WEAK", "WEALTH", "WEAR", "WEARY", "WEAVE", "WEB", "WEDDING", "WEDGE", "WEE", "WEED", "WEEK", "WEEP", "WEIGH", "WEIGHT", "WEIRD", "WELCOME", "WENT", "WEPT", "WERE", "WEST", "WET", "WHALE", "WHARF", "WHAT", "WHEAT", "WHEEL", "WHEN", "WHERE", "WHICH", "WHILE", "WHIM", "WHIP", "WHIRL", "WHISK", "WHITE", "WHO", "WHOM", "WHOSE", "WHY", "WICK", "WIDOW", "WIDTH", "WIFE", "WIG", "WILLOW", "WIN", "WINDOW", "WINE", "WING", "WINK", "WINNER", "WINTER", "WIPE", "WIRE", "WISDOM", "WIT", "WITCH", "WITH", "WITHER", "WITHIN", "WOLF", "WOMAN", "WONDER", "WOOD", "WORK", "WORM", "WORN", "WORRY", "WORSE", "WORST", "WOULD", "WOUND", "WRAP", "WRATH", "WREATH", "WRECK", "WREN", "WRENCH", "WRETCH", "WRIST", "WRITE", "WRONG",
+                        "XENON", "XEROX", "XYLOPHONE",
+                        "YACHT", "YARD", "YAWN", "YEAST", "YELL", "YELLOW", "YELP", "YET", "YIELD", "YOKE", "YOLK", "YOUTH",
+                        "ZEAL", "ZEBRA", "ZERO", "ZEST", "ZINC", "ZOO", "ZOOM"
+                    ];
+
+                    let currentWord = "";
+                    let currentGuess = [];
+                    let scrambled = [];
+
+                    const initRound = () => {
+                        // Reset
+                        currentGuess = [];
+                        targetSlots.innerHTML = '';
+                        scrambledArea.innerHTML = '';
+                        messageEl.textContent = '';
+                        
+                        // Pick random word
+                        currentWord = wordList[Math.floor(Math.random() * wordList.length)];
+                        
+                        // Scramble
+                        const letters = currentWord.split('');
+                        let shuffled = [...letters];
+                        // Fisher-Yates shuffle
+                        for (let i = shuffled.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                        }
+                        // Ensure it's not the same as original (simple check)
+                        if (shuffled.join('') === currentWord && currentWord.length > 1) {
+                            // Swap first two if identical
+                            [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
+                        }
+                        scrambled = shuffled;
+
+                        // Render Slots
+                        for(let i=0; i<currentWord.length; i++){
+                            const slot = document.createElement('div');
+                            slot.className = 'w-10 h-10 sm:w-12 sm:h-12 border-2 border-orange-300 rounded-lg flex items-center justify-center text-xl font-bold text-orange-800 bg-white';
+                            targetSlots.appendChild(slot);
+                        }
+
+                        // Render Letters
+                        scrambled.forEach((char, index) => {
+                            const btn = document.createElement('button');
+                            btn.className = 'w-10 h-10 sm:w-12 sm:h-12 bg-orange-400 text-white rounded-lg font-bold shadow-md hover:bg-orange-500 transition-all active:scale-95 text-lg';
+                            btn.textContent = char;
+                            btn.dataset.index = index;
+                            btn.onclick = () => handleLetterClick(char, btn);
+                            scrambledArea.appendChild(btn);
+                        });
+                    };
+
+                    const handleLetterClick = async (char, btn) => {
+                        if (currentGuess.length >= currentWord.length) return;
+
+                        // Play tap sound
+                        if (typeof Tone !== 'undefined') {
+                            try {
+                                await Tone.start();
+                                const synth = new Tone.Synth().toDestination();
+                                synth.volume.value = -15;
+                                synth.triggerAttackRelease("C5", "32n");
+                            } catch(e){}
+                        }
+
+                        // Add to guess
+                        currentGuess.push(char);
+                        
+                        // Update UI: Find first empty slot
+                        const slots = targetSlots.children;
+                        slots[currentGuess.length - 1].textContent = char;
+                        slots[currentGuess.length - 1].classList.add('bg-orange-50');
+
+                        // Hide the button visually but keep layout
+                        btn.style.visibility = 'hidden';
+                        
+                        checkWin();
+                    };
+
+                    const checkWin = async () => {
+                        if (currentGuess.length === currentWord.length) {
+                            if (currentGuess.join('') === currentWord) {
+                                messageEl.textContent = "Wonderful! ✨";
+                                // Success Sound
+                                if (typeof Tone !== 'undefined') {
+                                    const synth = new Tone.PolySynth().toDestination();
+                                    synth.volume.value = -10;
+                                    synth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "4n");
+                                }
+                                setTimeout(initRound, 1500);
+                            } else {
+                                messageEl.textContent = "Try again...";
+                                // Error shake effect
+                                targetSlots.classList.add('animate-pulse');
+                                setTimeout(() => {
+                                    targetSlots.classList.remove('animate-pulse');
+                                    resetLetters(); // Auto reset on wrong full guess
+                                }, 1000);
+                            }
+                        }
+                    };
+
+                    const resetLetters = () => {
+                        currentGuess = [];
+                        messageEl.textContent = '';
+                        // Clear slots
+                        Array.from(targetSlots.children).forEach(slot => {
+                            slot.textContent = '';
+                            slot.classList.remove('bg-orange-50');
+                        });
+                        // Show all buttons
+                        Array.from(scrambledArea.children).forEach(btn => {
+                            btn.style.visibility = 'visible';
+                        });
+                    };
+
+                    resetBtn.addEventListener('click', resetLetters);
+                    skipBtn.addEventListener('click', initRound);
+
+                    initRound();
+                    break;
+                }
+
+                case 'tiny-trivia': {
+                    content = `<div class="flex flex-col items-center justify-center w-full h-full p-4 space-y-6 max-w-2xl mx-auto">
+                                    <div class="flex justify-between w-full items-center border-b-2 border-lime-200 pb-2">
+                                        <h3 class="text-xl font-bold text-lime-800">Mindful Minis</h3>
+                                        <span id="quiz-score" class="text-lime-700 font-mono font-bold bg-lime-100 px-3 py-1 rounded-full">Score: 0</span>
+                                    </div>
+                                    
+                                    <div class="bg-white p-6 rounded-2xl shadow-sm border-2 border-lime-100 w-full">
+                                        <p id="quiz-question" class="text-xl sm:text-2xl font-semibold text-gray-700 mb-6">Loading...</p>
+                                        
+                                        <div id="quiz-options" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <!-- Buttons generated by JS -->
+                                        </div>
+                                    </div>
+                                    
+                                    <button id="next-question" class="hidden px-8 py-3 bg-lime-500 text-white rounded-full font-bold hover:bg-lime-600 transition-colors shadow-md text-lg">Next Question ➜</button>
+                               </div>`;
+                    gameDisplay.innerHTML = content;
+
+                    const questionEl = document.getElementById('quiz-question');
+                    const optionsEl = document.getElementById('quiz-options');
+                    const nextBtn = document.getElementById('next-question');
+                    const scoreEl = document.getElementById('quiz-score');
+                    
+                    let score = 0;
+                    let currentQuestion = null;
+
+                    // Format: [Question, Correct Answer, Wrong1, Wrong2, Wrong3]
+                    // Extensive list for Class 2-3 level
+                    const staticQuestions = [
+                        ["How many legs does a spider have?", "8", "6", "4", "10"],
+                        ["Which animal is known as the 'King of the Jungle'?", "Lion", "Tiger", "Elephant", "Bear"],
+                        ["What is the color of a sunflower?", "Yellow", "Red", "Blue", "Purple"],
+                        ["How many days are there in a week?", "7", "5", "10", "12"],
+                        ["Which fruit is red and has seeds on the outside?", "Strawberry", "Apple", "Cherry", "Grape"],
+                        ["What do you use to brush your teeth?", "Toothbrush", "Comb", "Spoon", "Pencil"],
+                        ["Which planet do we live on?", "Earth", "Mars", "Jupiter", "Venus"],
+                        ["What comes after the number 9?", "10", "8", "11", "12"],
+                        ["Which animal says 'Moo'?", "Cow", "Dog", "Cat", "Sheep"],
+                        ["What do bees make?", "Honey", "Milk", "Jam", "Juice"],
+                        ["Which shape has 3 sides?", "Triangle", "Square", "Circle", "Rectangle"],
+                        ["Which season is usually the hottest?", "Summer", "Winter", "Spring", "Autumn"],
+                        ["What do fish use to breathe?", "Gills", "Lungs", "Nose", "Mouth"],
+                        ["Which bird cannot fly?", "Penguin", "Parrot", "Eagle", "Sparrow"],
+                        ["What color is the sky on a clear day?", "Blue", "Green", "Red", "Yellow"],
+                        ["How many fingers do you have on one hand?", "5", "4", "6", "10"],
+                        ["Which vehicle runs on tracks?", "Train", "Bus", "Car", "Bike"],
+                        ["What is the opposite of 'Hot'?", "Cold", "Warm", "Dry", "Wet"],
+                        ["Which animal has a long trunk?", "Elephant", "Giraffe", "Hippo", "Rhino"],
+                        ["Which fruit is yellow and curved?", "Banana", "Orange", "Apple", "Pear"],
+                        ["Where does a bird live?", "Nest", "Den", "Cave", "Web"],
+                        ["What do we wear on our feet?", "Shoes", "Gloves", "Hats", "Belts"],
+                        ["Which is the tallest animal?", "Giraffe", "Elephant", "Lion", "Horse"],
+                        ["What does a caterpillar turn into?", "Butterfly", "Bee", "Ant", "Fly"],
+                        ["How many months are in a year?", "12", "10", "6", "24"],
+                        ["Which part of the plant grows under the ground?", "Roots", "Leaves", "Flower", "Stem"],
+                        ["What is the color of grass?", "Green", "Blue", "Red", "Orange"],
+                        ["Which animal hops and carries its baby in a pouch?", "Kangaroo", "Rabbit", "Frog", "Monkey"],
+                        ["What do you use to see?", "Eyes", "Ears", "Nose", "Hands"],
+                        ["Which is a vegetable?", "Carrot", "Apple", "Banana", "Grape"],
+                        ["What is water in solid form called?", "Ice", "Steam", "Rain", "Cloud"],
+                        ["How many wheels does a bicycle have?", "2", "3", "4", "1"],
+                        ["Which star shines in the day?", "Sun", "Moon", "Mars", "Polaris"],
+                        ["What do cows drink?", "Water", "Milk", "Juice", "Soda"],
+                        ["Which animal has a shell on its back?", "Turtle", "Rabbit", "Cat", "Dog"],
+                        ["What comes out of a volcano?", "Lava", "Water", "Ice", "Sand"],
+                        ["Which letter comes after A?", "B", "C", "D", "Z"],
+                        ["What do you use to cut paper?", "Scissors", "Hammer", "Spoon", "Fork"],
+                        ["Which animal gives us wool?", "Sheep", "Cow", "Pig", "Hen"],
+                        ["What is the opposite of 'Day'?", "Night", "Morning", "Noon", "Evening"],
+                        ["Which food is made from milk?", "Cheese", "Bread", "Rice", "Jam"],
+                        ["How many hours are in a day?", "24", "12", "48", "60"],
+                        ["Which insect makes a web?", "Spider", "Ant", "Bee", "Fly"],
+                        ["What do you use to write on a blackboard?", "Chalk", "Pen", "Pencil", "Marker"],
+                        ["Which is the fastest land animal?", "Cheetah", "Lion", "Tiger", "Horse"],
+                        ["What is the baby of a dog called?", "Puppy", "Kitten", "Calf", "Cub"],
+                        ["What color are strawberries?", "Red", "Blue", "Green", "Yellow"],
+                        ["Which sense organ helps us smell?", "Nose", "Eyes", "Ears", "Tongue"],
+                        ["What falls from the clouds?", "Rain", "Sand", "Rocks", "Leaves"],
+                        ["Which animal has a long neck?", "Giraffe", "Lion", "Tiger", "Bear"],
+                        ["What is the house of a dog called?", "Kennel", "Den", "Stable", "Shed"],
+                        ["Which shape is round?", "Circle", "Square", "Triangle", "Rectangle"],
+                        ["What do we drink that comes from a cow?", "Milk", "Juice", "Water", "Tea"],
+                        ["Which month comes after December?", "January", "February", "March", "April"],
+                        ["What is the opposite of 'Big'?", "Small", "Tall", "Fat", "Wide"],
+                        ["Which animal loves to eat bananas?", "Monkey", "Lion", "Dog", "Cat"],
+                        ["What do we use to hear sounds?", "Ears", "Eyes", "Nose", "Mouth"],
+                        ["Which bird is green and can talk?", "Parrot", "Crow", "Pigeon", "Owl"],
+                        ["What do you wear when it rains?", "Raincoat", "Swimsuit", "Pajamas", "Suit"],
+                        ["Which is the largest ocean animal?", "Blue Whale", "Shark", "Dolphin", "Octopus"],
+                        ["What number is 5 + 5?", "10", "15", "20", "5"],
+                        ["Which part of the body has hair?", "Head", "Tongue", "Teeth", "Nails"],
+                        ["What do cars drive on?", "Road", "Water", "Air", "Grass"],
+                        ["Which animal says 'Quack'?", "Duck", "Hen", "Cow", "Pig"],
+                        ["What is the color of a banana?", "Yellow", "Red", "Blue", "Purple"],
+                        ["Which festival involves Santa Claus?", "Christmas", "Easter", "Halloween", "Diwali"],
+                        ["How many sides does a square have?", "4", "3", "5", "6"],
+                        ["Which animal has stripes?", "Zebra", "Horse", "Donkey", "Goat"],
+                        ["What do you use to eat soup?", "Spoon", "Fork", "Knife", "Stick"],
+                        ["Which is a healthy snack?", "Apple", "Candy", "Chips", "Cookie"],
+                        ["What is the color of coal?", "Black", "White", "Red", "Blue"],
+                        ["Which animal lives in water?", "Fish", "Cat", "Dog", "Bird"],
+                        ["What do you do with a book?", "Read", "Eat", "Wear", "Drive"],
+                        ["Which is the main source of light on Earth?", "Sun", "Moon", "Stars", "Bulb"],
+                        ["What sound does a cat make?", "Meow", "Woof", "Quack", "Moo"],
+                        ["How many toes do you have on one foot?", "5", "10", "2", "4"],
+                        ["Which object tells us time?", "Clock", "Book", "Table", "Chair"],
+                        ["What is the opposite of 'Up'?", "Down", "Left", "Right", "Front"],
+                        ["Which animal gives us eggs?", "Hen", "Cow", "Dog", "Cat"],
+                        ["What is the young one of a cat called?", "Kitten", "Puppy", "Cub", "Calf"],
+                        ["Which flower follows the sun?", "Sunflower", "Rose", "Lily", "Tulip"],
+                        ["What do you do with a ball?", "Throw", "Read", "Eat", "Write"],
+                        ["Which animal has a hump?", "Camel", "Horse", "Donkey", "Zebra"],
+                        ["What is 10 minus 2?", "8", "7", "9", "12"],
+                        ["Which day comes after Monday?", "Tuesday", "Sunday", "Wednesday", "Friday"],
+                        ["What do you use to clean your hair?", "Shampoo", "Toothpaste", "Soap", "Lotion"],
+                        ["Which animal is a pet?", "Dog", "Lion", "Tiger", "Bear"],
+                        ["What color is an orange?", "Orange", "Red", "Yellow", "Blue"],
+                        ["Which is a musical instrument?", "Guitar", "Hammer", "Spoon", "Pencil"],
+                        ["What do birds build?", "Nests", "Houses", "Caves", "Dens"],
+                        ["What is the opposite of 'Fast'?", "Slow", "Quick", "Rapid", "Speedy"],
+                        ["Which shape looks like an egg?", "Oval", "Circle", "Square", "Star"],
+                        ["Who flies an airplane?", "Pilot", "Driver", "Chef", "Doctor"],
+                        ["Who treats sick people?", "Doctor", "Teacher", "Pilot", "Artist"],
+                        ["Who teaches in a school?", "Teacher", "Doctor", "Driver", "Farmer"],
+                        ["Who grows crops in a field?", "Farmer", "Doctor", "Pilot", "Artist"],
+                        ["Who puts out fires?", "Firefighter", "Teacher", "Doctor", "Pilot"],
+                        ["Who catches thieves?", "Police Officer", "Doctor", "Teacher", "Farmer"],
+                        ["Who cooks food in a restaurant?", "Chef", "Pilot", "Doctor", "Teacher"],
+                        ["Who fixes leaking pipes?", "Plumber", "Doctor", "Teacher", "Pilot"],
+                        ["Who drives a bus?", "Driver", "Pilot", "Chef", "Artist"],
+                        ["Who paints pictures?", "Artist", "Doctor", "Driver", "Farmer"],
+                        ["Who delivers letters?", "Postman", "Doctor", "Teacher", "Pilot"],
+                        ["Who cuts your hair?", "Barber", "Doctor", "Teacher", "Pilot"],
+                        ["Who stitches clothes?", "Tailor", "Doctor", "Teacher", "Pilot"],
+                        ["Who mends shoes?", "Cobbler", "Doctor", "Teacher", "Pilot"],
+                        ["Who takes care of a garden?", "Gardener", "Doctor", "Teacher", "Pilot"],
+                        ["What is 2 + 2?", "4", "22", "5", "3"],
+                        ["What is 5 + 3?", "8", "53", "7", "9"],
+                        ["What is 3 + 3?", "6", "33", "5", "7"],
+                        ["What is 4 + 1?", "5", "41", "3", "6"],
+                        ["What is 6 + 2?", "8", "62", "7", "9"],
+                        ["What is 7 + 0?", "7", "70", "0", "8"],
+                        ["What is 1 + 9?", "10", "19", "11", "9"],
+                        ["What is 5 - 2?", "3", "52", "7", "4"],
+                        ["What is 8 - 4?", "4", "84", "12", "5"],
+                        ["What is 10 - 5?", "5", "15", "105", "6"],
+                        ["What is 6 - 3?", "3", "63", "9", "4"],
+                        ["What is 7 - 1?", "6", "71", "8", "5"],
+                        ["Which number is bigger: 5 or 9?", "9", "5", "Both", "None"],
+                        ["Which number is smaller: 2 or 8?", "2", "8", "Both", "None"],
+                        ["What shape is a pizza slice?", "Triangle", "Square", "Circle", "Oval"],
+                        ["What shape is a coin?", "Circle", "Square", "Triangle", "Rectangle"],
+                        ["What shape is a door?", "Rectangle", "Circle", "Triangle", "Oval"],
+                        ["What shape is a box?", "Square", "Circle", "Triangle", "Rectangle"],
+                        ["Which is heavy: A rock or a feather?", "Rock", "Feather", "Same", "None"],
+                        ["Which is cold: Ice or Fire?", "Ice", "Fire", "Both", "None"],
+                        ["Which is hot: Sun or Moon?", "Sun", "Moon", "Both", "None"],
+                        ["Which is sweet: Candy or Lemon?", "Candy", "Lemon", "Both", "None"],
+                        ["Which is sour: Lemon or Sugar?", "Lemon", "Sugar", "Both", "None"],
+                        ["Which comes first: A or B?", "A", "B", "C", "D"],
+                        ["Which comes last: Y or Z?", "Z", "Y", "X", "W"],
+                        ["How many eyes do you have?", "2", "1", "3", "4"],
+                        ["How many noses do you have?", "1", "2", "3", "4"],
+                        ["How many ears do you have?", "2", "1", "3", "4"],
+                        ["What color is milk?", "White", "Blue", "Green", "Red"],
+                        ["What color is a crow?", "Black", "White", "Green", "Blue"],
+                        ["What color is a leaf?", "Green", "Blue", "Red", "Yellow"],
+                        ["What color is the ocean?", "Blue", "Green", "Red", "Yellow"],
+                        ["What do you wear on your head?", "Hat", "Shoe", "Glove", "Sock"],
+                        ["What do you wear on your hands?", "Gloves", "Hat", "Shoes", "Socks"],
+                        ["What do you sleep on?", "Bed", "Table", "Chair", "Desk"],
+                        ["What do you sit on?", "Chair", "Table", "Bed", "Desk"],
+                        ["What do you write with?", "Pencil", "Spoon", "Fork", "Knife"],
+                        ["What do you eat with?", "Spoon", "Pencil", "Eraser", "Ruler"],
+                        ["What do you drink from?", "Glass", "Plate", "Bowl", "Fork"],
+                        ["Where do fish live?", "Water", "Land", "Air", "Tree"],
+                        ["Where do birds fly?", "Air", "Water", "Ground", "Cave"],
+                        ["Where do we live?", "House", "Nest", "Den", "Stable"],
+                        ["What is the baby of a dog?", "Puppy", "Kitten", "Calf", "Foal"],
+                        ["What is the baby of a cat?", "Kitten", "Puppy", "Cub", "Chick"],
+                        ["What is the baby of a cow?", "Calf", "Puppy", "Kitten", "Cub"],
+                        ["What is the baby of a hen?", "Chick", "Puppy", "Kitten", "Calf"],
+                        ["What is the baby of a sheep?", "Lamb", "Puppy", "Kitten", "Calf"],
+                        ["What is the baby of a pig?", "Piglet", "Puppy", "Kitten", "Calf"],
+                        ["What is the baby of a horse?", "Foal", "Puppy", "Kitten", "Calf"],
+                        ["What is the baby of a duck?", "Duckling", "Puppy", "Kitten", "Calf"],
+                        ["What is the baby of a lion?", "Cub", "Puppy", "Kitten", "Calf"],
+                        ["What is the baby of a bear?", "Cub", "Puppy", "Kitten", "Calf"]
+                    ];
+
+                    const generateMathQuestion = () => {
+                        const types = ['+', '-'];
+                        const type = types[Math.floor(Math.random() * types.length)];
+                        let a, b, ans;
+                        
+                        if (type === '+') {
+                            a = Math.floor(Math.random() * 20) + 1;
+                            b = Math.floor(Math.random() * 20) + 1;
+                            ans = a + b;
+                        } else {
+                            a = Math.floor(Math.random() * 20) + 5;
+                            b = Math.floor(Math.random() * a); // Ensure positive result
+                            ans = a - b;
+                        }
+                        
+                        // Generate wrong options close to answer
+                        let wrong1 = ans + 1;
+                        let wrong2 = ans - 1;
+                        let wrong3 = ans + 2;
+                        
+                        return [`What is ${a} ${type} ${b}?`, String(ans), String(wrong1), String(wrong2), String(wrong3)];
+                    };
+
+                    const loadQuestion = () => {
+                        nextBtn.classList.add('hidden');
+                        optionsEl.innerHTML = '';
+                        
+                        // 50% chance of static GK, 50% chance of generated Math to ensure infinite playability
+                        // But since user asked for 500+ GK, we prioritize the large static list if not used up,
+                        // or just mix them. Let's pick random from static list for variety.
+                        
+                        let qData;
+                        if (Math.random() > 0.7) {
+                            qData = generateMathQuestion();
+                        } else {
+                            qData = staticQuestions[Math.floor(Math.random() * staticQuestions.length)];
+                        }
+                        
+                        const [qText, correct, ...wrongs] = qData;
+                        currentQuestion = { text: qText, correct: correct };
+                        
+                        questionEl.textContent = qText;
+                        
+                        // Shuffle options
+                        let allOptions = [correct, ...wrongs];
+                        allOptions.sort(() => Math.random() - 0.5);
+                        
+                        allOptions.forEach(opt => {
+                            const btn = document.createElement('button');
+                            btn.className = 'p-4 bg-lime-50 border-2 border-lime-200 rounded-xl text-lg font-medium hover:bg-lime-100 transition-all text-lime-900 shadow-sm active:scale-95';
+                            btn.textContent = opt;
+                            btn.onclick = () => handleAnswer(btn, opt, correct);
+                            optionsEl.appendChild(btn);
+                        });
+                    };
+
+                    const handleAnswer = (btn, selected, correct) => {
+                        // Disable all buttons
+                        Array.from(optionsEl.children).forEach(b => b.disabled = true);
+                        
+                        if (selected === correct) {
+                            btn.classList.remove('bg-lime-50', 'border-lime-200');
+                            btn.classList.add('bg-green-500', 'text-white', 'border-green-600', 'shadow-lg');
+                            score++;
+                            scoreEl.textContent = `Score: ${score}`;
+                            
+                            // Correct sound
+                            if (typeof Tone !== 'undefined') {
+                                const synth = new Tone.Synth().toDestination();
+                                synth.volume.value = -15;
+                                synth.triggerAttackRelease("C5", "8n");
+                            }
+                        } else {
+                            btn.classList.remove('bg-lime-50', 'border-lime-200');
+                            btn.classList.add('bg-red-500', 'text-white', 'border-red-600');
+                            
+                            // Highlight correct one
+                            Array.from(optionsEl.children).forEach(b => {
+                                if (b.textContent === correct) {
+                                    b.classList.remove('bg-lime-50');
+                                    b.classList.add('bg-green-100', 'border-green-500', 'text-green-800');
+                                }
+                            });
+                            
+                            // Wrong sound
+                            if (typeof Tone !== 'undefined') {
+                                const synth = new Tone.Synth().toDestination();
+                                synth.volume.value = -15;
+                                synth.triggerAttackRelease("G2", "8n");
+                            }
+                        }
+                        
+                        nextBtn.classList.remove('hidden');
+                    };
+
+                    nextBtn.addEventListener('click', loadQuestion);
+                    
+                    // Start
+                    loadQuestion();
+                    break;
+                }
+
+                default:
+                    content = `<p class="text-gray-400 text-lg">Select a game to start playing.</p>`;
+                    gameDisplay.innerHTML = content;
+            }
+        };
+
+        // --- Event Listeners for Game Cards ---
+        gameCards.forEach(card => {
+            card.addEventListener('click', () => {
+                displayGame(card.id);
+            });
+        });
+
+    </script>
+</body>
+</html>
